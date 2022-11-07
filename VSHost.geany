@@ -1,0 +1,52 @@
+[file_prefs]
+final_new_line=true
+ensure_convert_new_lines=false
+strip_trailing_spaces=false
+replace_tabs=false
+
+[indentation]
+indent_width=4
+indent_type=1
+indent_hard_tab_width=8
+detect_indent=false
+detect_indent_width=false
+indent_mode=2
+
+[project]
+name=VSHost
+base_path=/home/ilker/Desktop/C/VSHost
+description=
+file_patterns=
+
+[long line marker]
+long_line_behaviour=1
+long_line_column=72
+
+[files]
+current_page=1
+FILE_NAME_0=2325;C;0;EUTF-8;1;1;0;%2Fhome%2Filker%2FDesktop%2FC%2FVSHost%2FVSHost.c;0;4
+FILE_NAME_1=22576;C;0;EUTF-8;1;1;0;%2Fhome%2Filker%2FDesktop%2FC%2FVSHost%2FYUV420RGBgl.c;0;4
+FILE_NAME_2=125;C++;0;EUTF-8;1;1;0;%2Fhome%2Filker%2FDesktop%2FC%2FVSHost%2FYUV420RGBgl.h;0;4
+FILE_NAME_3=5896;C;0;EUTF-8;1;1;0;%2Fhome%2Filker%2FDesktop%2FC%2FVSHost%2FVSTMediaPlayer.c;0;4
+FILE_NAME_4=9198;C;0;EUTF-8;1;1;0;%2Fhome%2Filker%2FDesktop%2FC%2FVSHost%2FVSTVideoPlayer.c;0;4
+FILE_NAME_5=68;C++;0;EUTF-8;1;1;0;%2Fhome%2Filker%2FDesktop%2FC%2FVSHost%2FVSTVideoPlayer.h;0;4
+
+[VTE]
+last_dir=/home/ilker
+
+[build-menu]
+CFT_00_LB=_Derle
+CFT_00_CM=gcc -Wall -c "%f" -std=c99 -DUSE_OPENGL -DUSE_EGL -DIS_RPI -DSTANDALONE -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -DTARGET_POSIX -D_LINUX -fPIC -DPIC -D_REENTRANT -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -U_FORTIFY_SOURCE -g -ftree-vectorize -pipe -Wno-psabi $(pkg-config --cflags gtk+-3.0) -Wno-deprecated-declarations
+CFT_00_WD=
+CFT_01_LB=İn_şa Et
+CFT_01_CM=gcc -Wall -o "%e" "%f" VSJam.o VStudio.o VSEffect.o AudioDev.o AudioMic.o AudioSpk.o AudioMixer.o AudioEncoder.o VSTMediaPlayer.o VSTVideoPlayer.o YUV420RGBgl.o VideoQueue.o AudioPipeNB.o -D_POSIX_C_SOURCE=199309L $(pkg-config --cflags gtk+-3.0) -Wl,--whole-archive -lGLESv2 -lEGL -lpthread -lrt -ldl -lm -lGL -Wl,--no-whole-archive -rdynamic $(pkg-config --libs gtk+-3.0) $(pkg-config --libs libavcodec libavformat libavutil libswscale) -lasound $(pkg-config --libs sqlite3)
+CFT_01_WD=
+filetypes=C;
+NF_03_LB=Github
+NF_03_CM=git gui
+NF_03_WD=
+
+[editor]
+line_wrapping=false
+line_break_column=72
+auto_continue_multiline=true

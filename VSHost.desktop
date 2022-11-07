@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Encoding=UTF-8
+Name=Virtual Studio Host
+Comment=Virtual Studio Host
+Exec=/home/pi/Desktop/C/VSHost/VSHost
+Icon=/home/pi/Desktop/C/VSHost/images/VSHost.png
+Terminal=false
+Path=/home/pi/Desktop/C/VSHost
+GenericName=Virtual Studio Host
+StartupNotify=false
+Name[tr_TR]=Virtual Studio Host
+Categories=GNOME;GTK;Audio;Video

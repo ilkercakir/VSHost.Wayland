@@ -1,0 +1,2 @@
+# VSHost
+Virtual Studio Host
