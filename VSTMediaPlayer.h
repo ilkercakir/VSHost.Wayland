@@ -74,8 +74,8 @@ int last_id;
 pthread_t tid;
 int retval0;
 cpu_set_t cpu[4];
-char msg[256];
-GtkTargetEntry target_entries[2];
+char msg[300];
+GtkTargetEntry target_entries[3];
 }vpwidgets;
 
 typedef struct

@@ -23,16 +23,16 @@ long_line_behaviour=1
 long_line_column=72
 
 [files]
-current_page=1
-FILE_NAME_0=2325;C;0;EUTF-8;1;1;0;%2Fhome%2Filker%2FDesktop%2FC%2FVSHost%2FVSHost.c;0;4
-FILE_NAME_1=22576;C;0;EUTF-8;1;1;0;%2Fhome%2Filker%2FDesktop%2FC%2FVSHost%2FYUV420RGBgl.c;0;4
-FILE_NAME_2=125;C++;0;EUTF-8;1;1;0;%2Fhome%2Filker%2FDesktop%2FC%2FVSHost%2FYUV420RGBgl.h;0;4
-FILE_NAME_3=5896;C;0;EUTF-8;1;1;0;%2Fhome%2Filker%2FDesktop%2FC%2FVSHost%2FVSTMediaPlayer.c;0;4
-FILE_NAME_4=9198;C;0;EUTF-8;1;1;0;%2Fhome%2Filker%2FDesktop%2FC%2FVSHost%2FVSTVideoPlayer.c;0;4
-FILE_NAME_5=68;C++;0;EUTF-8;1;1;0;%2Fhome%2Filker%2FDesktop%2FC%2FVSHost%2FVSTVideoPlayer.h;0;4
+current_page=3
+FILE_NAME_0=0;C;0;EUTF-8;1;1;0;%2Fhome%2Fpi%2FDocuments%2FC%2FVSHost.Wayland%2FAudioDev.c;0;4
+FILE_NAME_1=8050;C;0;EUTF-8;1;1;0;%2Fhome%2Fpi%2FDocuments%2FC%2FVSHost.Wayland%2FVSTVideoPlayer.c;0;4
+FILE_NAME_2=1134;C++;0;EUTF-8;1;1;0;%2Fhome%2Fpi%2FDocuments%2FC%2FVSHost.Wayland%2FVSTVideoPlayer.h;0;4
+FILE_NAME_3=29537;C;0;EUTF-8;1;1;0;%2Fhome%2Fpi%2FDocuments%2FC%2FVSHost.Wayland%2FVSTMediaPlayer.c;0;4
+FILE_NAME_4=1023;C++;0;EUTF-8;1;1;0;%2Fhome%2Fpi%2FDocuments%2FC%2FVSHost.Wayland%2FVSTMediaPlayer.h;0;4
+FILE_NAME_5=518;C;0;EUTF-8;1;1;0;%2Fhome%2Fpi%2FDocuments%2FC%2Fexamples%2Fdrag_and_drop.c;0;4
 
 [VTE]
-last_dir=/home/ilker
+last_dir=/home/pi
 
 [build-menu]
 CFT_00_LB=_Derle

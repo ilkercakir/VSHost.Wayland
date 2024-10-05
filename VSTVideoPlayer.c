@@ -169,7 +169,7 @@ int open_now_playing(videoplayer *v)
 	v->optionsDict = NULL;
 	v->optionsDictA = NULL;
 
-	av_register_all();
+	//av_register_all();
 	avformat_network_init();
 
 	if((i=avformat_open_input(&(v->pFormatCtx), v->now_playing, NULL, NULL))!=0)
@@ -193,7 +193,7 @@ int open_now_playing(videoplayer *v)
     v->videoStream=-1;
 	for(i=0; i<v->pFormatCtx->nb_streams; i++)
 	{
-		if (v->pFormatCtx->streams[i]->codec->codec_type==AVMEDIA_TYPE_VIDEO)
+		if (v->pFormatCtx->streams[i]->codecpar->codec_type==AVMEDIA_TYPE_VIDEO)
 		{
 			v->videoStream=i;
 			break;
@@ -207,16 +207,31 @@ int open_now_playing(videoplayer *v)
 	}
 	else
 	{
-		// Get a pointer to the codec context for the video stream
-		v->pCodecCtx=v->pFormatCtx->streams[v->videoStream]->codec;
+		v->pCodecPar=v->pFormatCtx->streams[v->videoStream]->codecpar;
+		v->pCodecId=v->pCodecPar->codec_id;
 
 		// Find the decoder for the video stream
-		v->pCodec=avcodec_find_decoder(v->pCodecCtx->codec_id);
+		v->pCodec=(AVCodec*)avcodec_find_decoder(v->pCodecId);
 		if (v->pCodec==NULL)
 		{
 			printf("Unsupported video codec\n");
 			return -1; // Codec not found
 		}
+
+		// Get a pointer to the codec context for the video stream
+		v->pCodecCtx = avcodec_alloc_context3(v->pCodec);
+		if (!v->pCodecCtx)
+		{
+			printf("Could not allocate video codec context\n");
+			return -1;
+		}
+
+        /* Copy codec parameters from input stream to codec context */
+        if (avcodec_parameters_to_context(v->pCodecCtx, v->pCodecPar) < 0)
+        {
+            printf("Failed to copy %s codec parameters to video decoder context\n", av_get_media_type_string(v->pCodecPar->codec_type));
+            return -1;
+        }
 
 		v->pCodecCtx->thread_count = v->thread_count;
 		// Open codec
@@ -237,11 +252,6 @@ int open_now_playing(videoplayer *v)
 			v->frame_rate = 0;
 			v->frametime = 1000000; // 1s
 		}
-//printf("Frame rate = %2.2f\n", frame_rate);
-//printf("frametime = %d usec\n", frametime);
-//printf("Width : %d, Height : %d\n", v->pCodecCtx->coded_width, v->pCodecCtx->coded_height);
-		//double rotation = get_rotation(st);
-//printf("rotation %f\n", rotation);
 		v->videoduration = (v->pFormatCtx->duration / AV_TIME_BASE) * v->frame_rate; // in frames
 
 		switch(v->pCodecCtx->pix_fmt)
@@ -260,13 +270,12 @@ int open_now_playing(videoplayer *v)
 				v->yuvfmt = RGBA;
 				break;
 		}
-//printf("Pixel format %d\n", v->pCodecCtx->pix_fmt);
-
 	}
+	
 	v->audioStream = -1;
 	for(i=0; i<v->pFormatCtx->nb_streams; i++)
 	{
-		if (v->pFormatCtx->streams[i]->codec->codec_type==AVMEDIA_TYPE_AUDIO)
+		if (v->pFormatCtx->streams[i]->codecpar->codec_type==AVMEDIA_TYPE_AUDIO)
 		{
 			v->audioStream = i;
 			break;
@@ -279,17 +288,31 @@ int open_now_playing(videoplayer *v)
 	}
 	else
 	{
-		// Get a pointer to the codec context for the audio stream
-		v->pCodecCtxA=v->pFormatCtx->streams[v->audioStream]->codec;
+		v->pCodecParA=v->pFormatCtx->streams[v->audioStream]->codecpar;
+		v->pCodecIdA=v->pCodecParA->codec_id;
 
 		// Find the decoder for the audio stream
-		v->pCodecA=avcodec_find_decoder(v->pCodecCtxA->codec_id);
-
+		v->pCodecA=(AVCodec*)avcodec_find_decoder(v->pCodecIdA);
 		if (v->pCodecA==NULL)
 		{
 			printf("Unsupported audio codec!\n");
 			return -1; // Codec not found
 		}
+
+		// Get a pointer to the codec context for the audio stream
+		v->pCodecCtxA = avcodec_alloc_context3(v->pCodecA);
+		if (!v->pCodecCtxA)
+		{
+			printf("Could not allocate audio codec context\n");
+			return -1;
+		}
+
+        /* Copy codec parameters from input stream to codec context */
+        if (avcodec_parameters_to_context(v->pCodecCtxA, v->pCodecParA) < 0)
+        {
+            printf("Failed to copy %s codec parameters to audio decoder context\n", av_get_media_type_string(v->pCodecParA->codec_type));
+            return -1;
+        }
 
 		// Open codec
 		if (avcodec_open2(v->pCodecCtxA, v->pCodecA, &(v->optionsDictA))<0)
@@ -300,21 +323,14 @@ int open_now_playing(videoplayer *v)
 
 		// Set up SWR context once you've got codec information
 		v->swr = swr_alloc();
-/*
-		if (v->pCodecCtxA->channel_layout)
-		{
-			av_opt_set_int(v->swr, "in_channel_layout", v->pCodecCtxA->channel_layout, 0);
-			av_opt_set_int(v->swr, "out_channel_layout", v->pCodecCtxA->channel_layout,  0);
-		}
-*/
 		av_opt_set_int(v->swr, "in_channel_count", v->pCodecCtxA->channels, 0);
 		av_opt_set_int(v->swr, "out_channel_count", 2,  0);
-//printf("%d %d\n", v->pCodecCtxA->sample_rate, v->spk_samplingrate);
 		av_opt_set_int(v->swr, "in_sample_rate", v->pCodecCtxA->sample_rate, 0);
 		av_opt_set_int(v->swr, "out_sample_rate", v->spk_samplingrate, 0);
-
 		av_opt_set_sample_fmt(v->swr, "in_sample_fmt", v->pCodecCtxA->sample_fmt, 0);
 		av_opt_set_sample_fmt(v->swr, "out_sample_fmt", AV_SAMPLE_FMT_S16,  0);
+//printf("channels %d sample_rate %d format %d\n", v->pCodecCtxA->channels, v->pCodecCtxA->sample_rate, v->pCodecCtxA->sample_fmt);
+//printf("channels %d sample_rate %d format %d\n", v->pCodecParA->ch_layout.nb_channels, v->pCodecParA->sample_rate, v->pCodecParA->format);
 		if ((i=swr_init(v->swr)))
 		{
 			av_strerror(i, err, sizeof(err));
@@ -322,13 +338,7 @@ int open_now_playing(videoplayer *v)
 		}
 		v->sample_rate = v->pCodecCtxA->sample_rate;
 		v->audioduration = (v->pFormatCtx->duration / AV_TIME_BASE) * v->sample_rate; // in samples
-		//printf("audio frame count %lld\n", audioduration);
 		v->audioduration = v->audioduration * v->spk_samplingrate / v->sample_rate; // resampler correction
-/*
-		int64_t last_ts = pFormatCtx->duration / AV_TIME_BASE;
-		last_ts = (last_ts * (pFormatCtx->streams[audioStream]->time_base.den)) / (pFormatCtx->streams[audioStream]->time_base.num);
-		printf("timebase last_ts %lld\n", last_ts);
-*/
 	}
 
 	if (v->optionsDict)
@@ -348,23 +358,20 @@ void request_stop_frame_reader(videoplayer *v)
 
 void frame_reader_loop(videoplayer *v)
 {
-	videoplayertimer vt;
-
     AVFrame *pFrame = NULL;
     pFrame=av_frame_alloc();
 
     AVPacket *packet;
-
-    packet=av_malloc(sizeof(AVPacket));
-    av_init_packet(packet);
-    packet->data = NULL;
-    packet->size = 0;
+    packet=av_packet_alloc();
+    //av_init_packet(packet);
+    //packet->data = NULL;
+    //packet->size = 0;
 
 	v->now_decoding_frame = v->now_playing_frame = v->audioframe = 0;
     int64_t fnum=0, aperiod=0;
 
 	char *rgba;
-	int width, height, frameFinished, ret;
+	int width, height, ret;
 
 	uint8_t **dst_data;
 	int dst_bufsize;
@@ -389,126 +396,117 @@ void frame_reader_loop(videoplayer *v)
 		height = v->codedHeight = v->codecHeight;
 	}
 
-	get_first_usec(&vt);
 	while ((av_read_frame(v->pFormatCtx, packet)>=0) && (!v->stoprequested))
 	{
-		v->diff1=get_next_usec(&vt); //printf("av_read_frame %ld\n", v->diff1);
-		//if (!(v->now_playing_frame%10))
-		//	gdk_threads_add_idle(setLevel1, (void*)v->vpwp);
-
 		if (packet->stream_index==v->videoStream) 
 		{
-			//if (v->decodevideo)
-			//{
-				get_first_usec(&vt);
-				if ((ret=avcodec_decode_video2(v->pCodecCtx, pFrame, &frameFinished, packet))<0) // Decode video frame
-					printf("Error decoding video frame %d\n", ret);
-				v->diff2=get_next_usec(&vt); //printf("%lu usec avcodec_decode_video2\n", v->diff2);
-				//if (!(v->now_playing_frame%10))
-				//	gdk_threads_add_idle(setLevel2, (void*)v->vpwp);
-
-				if (frameFinished)
+			if ((ret = avcodec_send_packet(v->pCodecCtx, packet)) < 0)
+			{
+				printf("Error sending a packet for video decoding\n");
+				continue;
+			}
+			else
+			{
+				if ((ret = avcodec_receive_frame(v->pCodecCtx, pFrame))<0)
 				{
-					if (!v->videoduration) // no video stream
-					{
-						AVFrame *pFrameRGB = NULL;
-						pFrameRGB = av_frame_alloc();
-						av_frame_unref(pFrameRGB);
-
-						//get_first_usec(&vt);
-
-						uint8_t *rgbbuffer = NULL;
-						int numBytes = avpicture_get_size(AV_PIX_FMT_RGB32, v->playerWidth, v->playerHeight);
-						//printf("numbytes %d\n", numBytes);
-
-						rgbbuffer = (uint8_t *)av_malloc(numBytes * sizeof(uint8_t));
-						avpicture_fill((AVPicture *)pFrameRGB, rgbbuffer, AV_PIX_FMT_RGB32, v->playerWidth, v->playerHeight);
-
-						struct SwsContext *sws_ctx = sws_getContext(v->pCodecCtx->width, v->pCodecCtx->height, v->pCodecCtx->pix_fmt,
-						v->playerWidth, v->playerHeight, AV_PIX_FMT_RGB32, SWS_BILINEAR, NULL, NULL, NULL);
-
-						//printf("sws_scale %d %d\n", playerWidth, playerHeight);
-						sws_scale(sws_ctx, (uint8_t const* const*)pFrame->data, pFrame->linesize, 0, v->pCodecCtx->height, pFrameRGB->data, pFrameRGB->linesize);
-						//printf("sws_scale done\n");
-						sws_freeContext(sws_ctx);
-
-						//v->diff3=get_next_usec(&vt);
-						//gdk_threads_add_idle(setLevel3, (void*)v->vpwp);
-
-						//width = v->lineWidth = pFrameRGB->linesize[0] / 4;
-						//height = v->playerHeight;
-						//printf("%d %d, %d %d\n", width, height, v->playerWidth, v->playerHeight);
-						rgba = malloc(pFrameRGB->linesize[0] * v->playerHeight);
-						//printf("malloc %d %d\n", pFrameRGB->linesize[0], playerHeight);
-						memcpy(rgba, pFrameRGB->data[0], pFrameRGB->linesize[0] * v->playerHeight);
-						//printf("memcpy %d\n", pFrameRGB->linesize[0] * v->playerHeight);
-
-						av_free(rgbbuffer);
-						//printf("av_free\n");
-						av_frame_unref(pFrameRGB);
-						//printf("av_frame_unref\n");
-						av_frame_free(&pFrameRGB);
-					}
-					else
-					{
-						switch(v->yuvfmt)
-						{
-							case RGBA:
-								break;
-							case YUV422:
-								width = v->lineWidth = pFrame->linesize[0];
-								rgba = malloc(width*height*2);
-								memcpy(&rgba[0], pFrame->data[0], width*height); //y
-								memcpy(&rgba[width*height], pFrame->data[1], width*height/2); //u
-								memcpy(&rgba[width*height*3/2], pFrame->data[2], width*height/2); //v
-								break;
-							case YUV420:
-							default:
-								width = v->lineWidth = pFrame->linesize[0];
-								rgba = malloc(width * height*3/2);
-
-								memcpy(&rgba[0], pFrame->data[0], width*height); //y
-								memcpy(&rgba[width*height], pFrame->data[1], width*height/4); //u
-								memcpy(&rgba[width*height*5/4], pFrame->data[2], width*height/4); //v
-//printf("linesizes %d %d %d\n", pFrame->linesize[0], pFrame->linesize[1], pFrame->linesize[2]);
-								break;
-						}
-					}
-
-					pthread_mutex_lock(&(v->framemutex));
-					if (!v->videoduration)
-						fnum = v->now_playing_frame;
-					else
-						fnum = v->now_decoding_frame++;
-					pthread_mutex_unlock(&(v->framemutex));
-
-					vq_add(&(v->vpq), rgba, fnum); //printf("vq added %ld %ld\n", v->videoduration, fnum);
-
-					//if (!(v->now_playing_frame%10))
-					//	gdk_threads_add_idle(setLevel9, (void*)v->vpwp);
-
-					av_frame_unref(pFrame);
-//printf("frame %lld\n", fnum);
-
-					pthread_mutex_lock(&(v->seekmutex));
-					while (v->vpq.playerstatus==PAUSED)
-					{
-						pthread_cond_wait(&(v->pausecond), &(v->seekmutex));
-					}
-					pthread_mutex_unlock(&(v->seekmutex));
+					// those two return values are special and mean there is no output
+					// frame available, but there were no errors during decoding
+					if (ret == AVERROR_EOF || ret == AVERROR(EAGAIN))
+						continue;			
+					printf("Error during video decoding %s\n", av_err2str(ret));
+					continue;
 				}
-			//}
+			}
+
+			if (!v->videoduration) // no video stream
+			{
+				AVFrame *pFrameRGB = NULL;
+				pFrameRGB = av_frame_alloc();
+				av_frame_unref(pFrameRGB);
+
+				uint8_t *rgbbuffer = NULL;
+				//int numBytes = avpicture_get_size(AV_PIX_FMT_RGB32, v->playerWidth, v->playerHeight);
+				int numBytes = av_image_get_buffer_size(AV_PIX_FMT_RGB32, v->playerWidth, v->playerHeight, 32);
+
+				rgbbuffer = (uint8_t *)av_malloc(numBytes * sizeof(uint8_t));
+				//avpicture_fill((AVPicture *)pFrameRGB, rgbbuffer, AV_PIX_FMT_RGB32, v->playerWidth, v->playerHeight);
+				av_image_fill_arrays(pFrameRGB->data, pFrameRGB->linesize, rgbbuffer, AV_PIX_FMT_RGB32, v->playerWidth, v->playerHeight, 1);
+
+				struct SwsContext *sws_ctx = sws_getContext(v->pCodecCtx->width, v->pCodecCtx->height, v->pCodecCtx->pix_fmt,
+				v->playerWidth, v->playerHeight, AV_PIX_FMT_RGB32, SWS_BILINEAR, NULL, NULL, NULL);
+
+				sws_scale(sws_ctx, (uint8_t const* const*)pFrame->data, pFrame->linesize, 0, v->pCodecCtx->height, pFrameRGB->data, pFrameRGB->linesize);
+				sws_freeContext(sws_ctx);
+
+				rgba = malloc(pFrameRGB->linesize[0] * v->playerHeight);
+				memcpy(rgba, pFrameRGB->data[0], pFrameRGB->linesize[0] * v->playerHeight);
+
+				av_free(rgbbuffer);
+				av_frame_unref(pFrameRGB);
+				av_frame_free(&pFrameRGB);
+			}
+			else
+			{
+				switch(v->yuvfmt)
+				{
+					case RGBA:
+						break;
+					case YUV422:
+						width = v->lineWidth = pFrame->linesize[0];
+						rgba = malloc(width*height*2);
+						memcpy(&rgba[0], pFrame->data[0], width*height); //y
+						memcpy(&rgba[width*height], pFrame->data[1], width*height/2); //u
+						memcpy(&rgba[width*height*3/2], pFrame->data[2], width*height/2); //v
+						break;
+					case YUV420:
+					default:
+						width = v->lineWidth = pFrame->linesize[0];
+						rgba = malloc(width * height*3/2);
+						memcpy(&rgba[0], pFrame->data[0], width*height); //y
+						memcpy(&rgba[width*height], pFrame->data[1], width*height/4); //u
+						memcpy(&rgba[width*height*5/4], pFrame->data[2], width*height/4); //v
+						break;
+				}
+			}
+
+			pthread_mutex_lock(&(v->framemutex));
+			if (!v->videoduration)
+				fnum = v->now_playing_frame;
+			else
+				fnum = v->now_decoding_frame++;
+			pthread_mutex_unlock(&(v->framemutex));
+
+			vq_add(&(v->vpq), rgba, fnum);
+
+			av_frame_unref(pFrame);
+
+			pthread_mutex_lock(&(v->seekmutex));
+			while (v->vpq.playerstatus==PAUSED)
+			{
+				pthread_cond_wait(&(v->pausecond), &(v->seekmutex));
+			}
+			pthread_mutex_unlock(&(v->seekmutex));
 		}
 		else if (packet->stream_index==v->audioStream)
 		{
-//printf("audioStream %lld\n", aperiod);
-			if ((ret = avcodec_decode_audio4(v->pCodecCtxA, pFrame, &frameFinished, packet)) < 0)
-				printf("Error decoding audio frame %d\n", ret);
-//printf("avcodec_decode_audio4\n");
-			if (frameFinished)
+			if ((ret = avcodec_send_packet(v->pCodecCtxA, packet)) < 0)
 			{
+				printf("Error sending a packet for audio decoding\n");
+				continue;
+			}
+			else
+			{
+				if ((ret = avcodec_receive_frame(v->pCodecCtxA, pFrame))<0)
+				{
+					// those two return values are special and mean there is no output
+					// frame available, but there were no errors during decoding
+					if (ret == AVERROR_EOF || ret == AVERROR(EAGAIN))
+						continue;			
+					printf("Error during video decoding %s\n", av_err2str(ret));
+					continue;
+				}
+
 				dst_nb_samples = av_rescale_rnd(swr_get_delay(v->swr, v->pCodecCtxA->sample_rate) + pFrame->nb_samples, v->spk_samplingrate, v->pCodecCtxA->sample_rate, AV_ROUND_UP);
-//printf("nb/max = %d/%d\n", dst_nb_samples, max_dst_nb_samples);
 				if (dst_nb_samples > max_dst_nb_samples)
 				{
 					av_freep(&dst_data[0]);
@@ -524,7 +522,6 @@ void frame_reader_loop(videoplayer *v)
 				if ((ret = swr_convert(v->swr, dst_data, dst_nb_samples, (const uint8_t **)pFrame->extended_data, pFrame->nb_samples))<0)
 					printf("Error while converting %d\n", ret);
 				dst_bufsize = av_samples_get_buffer_size(&line_size, 2, ret, AV_SAMPLE_FMT_S16, 1);
-//printf("ret=%d, dst_bufsize=%d\n", ret, dst_bufsize);
 				if (dst_data)
 				{
 					if (dst_data[0])
@@ -565,8 +562,6 @@ void frame_reader_loop(videoplayer *v)
 		av_init_packet(packet);
 		packet->data = NULL;
 		packet->size = 0;
-
-		get_first_usec(&vt);
 	}
 
 	if (dst_data[0])
@@ -583,14 +578,12 @@ void frame_reader_loop(videoplayer *v)
 	if (v->videoStream!=-1)
 	{
 		avcodec_flush_buffers(v->pCodecCtx);
-		avcodec_close(v->pFormatCtx->streams[v->videoStream]->codec);
-		//av_free(pCodecCtx);
+		avcodec_close(v->pCodecCtx);
 	}
 	if (v->audioStream!=-1)
 	{
 		avcodec_flush_buffers(v->pCodecCtxA);
-		avcodec_close(v->pFormatCtx->streams[v->audioStream]->codec);
-		//av_free(pCodecCtxA);
+		avcodec_close(v->pCodecCtxA);
 	}
 	avformat_close_input(&(v->pFormatCtx));
 	avformat_network_deinit();
@@ -703,7 +696,7 @@ void frame_player_loop(videoplayer *v)
 	}
 }
 
-static void* read_frames(void* args)
+void* read_frames(void* args)
 {
 	int ctype = PTHREAD_CANCEL_ASYNCHRONOUS;
 	int ctype_old;
@@ -722,7 +715,7 @@ static void* read_frames(void* args)
 	pthread_exit(&(vp->retval_thread1));
 }
 
-static void* videoPlayFromQueue(void* args)
+void* videoPlayFromQueue(void* args)
 {
 	int ctype = PTHREAD_CANCEL_ASYNCHRONOUS;
 	int ctype_old;

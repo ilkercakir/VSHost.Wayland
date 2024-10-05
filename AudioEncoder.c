@@ -35,7 +35,7 @@ static void* encoder_thread(void* args)
 	audioencoder *aen = (audioencoder *)args;
 
 	AVPacket pkt;
-	int ret = 0, data_present, i, j, frame_size;
+	int ret = 0, i, j, frame_size;
 	int offset, bytesleft, bytestocopy;
 
 	pthread_mutex_lock(&(aen->recordmutex));
@@ -132,6 +132,7 @@ static void* encoder_thread(void* args)
 			aen->frame->pts = aen->pts;
 			aen->pts += aen->frame->nb_samples;
 
+/*
 			if ((ret = avcodec_encode_audio2(aen->codeccontext, &pkt, aen->frame, &data_present)) < 0)
 			{
 				printf("Could not encode frame (error '%s')\n", av_err2str(ret));
@@ -153,6 +154,37 @@ static void* encoder_thread(void* args)
 						av_packet_unref(&pkt);
 				}
 			}
+*/
+			ret = avcodec_send_frame(aen->codeccontext, aen->frame);
+			if (ret < 0)
+			{
+				printf("Error sending a frame for encoding\n");
+				ret = -1;
+			}
+			while (ret >= 0)
+			{
+				ret = avcodec_receive_packet(aen->codeccontext, &pkt);
+				if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
+				{
+					ret = -1;
+					break;
+				}
+				else if (ret < 0)
+				{
+					printf("Error during encoding\n");
+					ret = -1;
+					break;
+				}
+				if ((ret = av_write_frame(aen->formatcontext, &pkt)) < 0)
+				{
+					printf("Could not write frame (error '%s')\n", av_err2str(ret));
+					av_packet_unref(&pkt);
+					ret = -1;
+				}
+				else
+					av_packet_unref(&pkt);
+			}
+
 		}
 
 		if (ret<0) break;
@@ -226,10 +258,6 @@ int start_encoder(audioencoder *aen, char *filename, enum AVCodecID id, enum AVS
 	aen->encoderbuffer = NULL;
 	aen->front = aen->rear = 0;
 
-	/* register all the codecs */
-	av_register_all();
-	avcodec_register_all();
-
 	/* Open the output file to write to it. */
 	if ((err = avio_open(&(aen->iocontext), filename, AVIO_FLAG_WRITE)) < 0)
 	{
@@ -257,10 +285,10 @@ int start_encoder(audioencoder *aen, char *filename, enum AVCodecID id, enum AVS
 	}
 	else
 	{
-		av_strlcpy(aen->formatcontext->filename, filename, sizeof(aen->formatcontext->filename));
+		av_strlcpy(aen->formatcontext->url, filename, sizeof(aen->formatcontext->url));
 
 		/* Find the encoder to be used by its name. */
-		aen->codec = avcodec_find_encoder(aen->id);
+		aen->codec = (AVCodec*)avcodec_find_encoder(aen->id);
 		if (!aen->codec)
 		{
 			printf("Codec %d not found\n", aen->id);

@@ -138,33 +138,32 @@ gboolean play_next(vpwidgets *vpw)
 	model = gtk_tree_view_get_model(GTK_TREE_VIEW(vpw->listview));
 	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(vpw->listview));
 
-	gtk_tree_selection_get_selected(selection, &model, &(vpw->iter));
-	if (gtk_tree_model_iter_next(model, &(vpw->iter)))
+	if (gtk_tree_selection_get_selected(selection, &model, &(vpw->iter)))
 	{
-		//gtk_tree_selection_select_iter(selection, &(vpw->iter));
-		gdk_threads_add_idle(focus_iter_idle, (void*)vpw);
-	}
-	else
-	{
-		if (gtk_tree_model_iter_nth_child(model, &(vpw->iter), NULL, 0))
+		if (gtk_tree_model_iter_next(model, &(vpw->iter)))
 		{
-			//gtk_tree_selection_select_iter(selection, &(vpw->iter));
 			gdk_threads_add_idle(focus_iter_idle, (void*)vpw);
 		}
 		else
 		{
-			printf("no entries\n");
-			return FALSE;
+			if (gtk_tree_model_iter_nth_child(model, &(vpw->iter), NULL, 0))
+			{
+				gdk_threads_add_idle(focus_iter_idle, (void*)vpw);
+			}
+			else
+			{
+				printf("no entries\n");
+				return FALSE;
+			}
 		}
 	}
-
 	if (vpw->vp.now_playing)
 	{
 		g_free(vpw->vp.now_playing);
 		vpw->vp.now_playing = NULL;
 	}
 	gtk_tree_model_get(model, &(vpw->iter), COL_FILEPATH, &(vpw->vp.now_playing), -1);
-	//g_print("Next %s\n", now_playing);
+//g_print("Next %s\n", now_playing);
 
 	return TRUE;
 }
@@ -732,7 +731,7 @@ static void button7_clicked(GtkWidget *button, gpointer data)
 	int rc;
 	int id;
 	char sql[1024];
-	char sid[10];
+	char sid[20];
 	char *strname;
 	char *strdest;
 
@@ -1044,43 +1043,31 @@ void drag_data_received_da_event(GtkWidget *widget, GdkDragContext *context, gin
 	vpwidgets *vpw = plp->vpw;
 	videoplayer *vp = &(vpw->vp);
 	videoplayerqueue *vpq = &(vp->vpq);
-	int i, itemcount, currentpage;
+	int itemcount, currentpage;
 
 //printf("drag_data_received\n");		
-	guchar *str = gtk_selection_data_get_text(selection_data);
-
 	if (!(currentpage = gtk_notebook_get_current_page(GTK_NOTEBOOK(vpw->notebook))))
 		button3_clicked(vpw->button3, plp); // Clear list
+	itemcount = gtk_tree_model_iter_n_children(GTK_TREE_MODEL(vpw->store), NULL); // rows
 
-	itemcount = i = gtk_tree_model_iter_n_children(GTK_TREE_MODEL(vpw->store), NULL); // rows
-	char *q;
-	char *p = (char *)str;
-	while(*p)
+	gchar **uris = gtk_selection_data_get_uris(selection_data);
+	for (gchar **uris_iter = uris; uris_iter && *uris_iter; ++uris_iter)
 	{
-		q = strchr(p, '\n');
-		*q = '\0';
-//printf("%s\n", p);
-		gchar *path = g_filename_from_uri(p, NULL, NULL);
-		int j = strlen(path);
-		if (path[j-1]=='\r') path[j-1] = '\0';
+		gchar *path = g_filename_from_uri(*uris_iter, NULL, NULL);
 //printf("%s\n", path);
-		char *path2 = malloc(strlen(path)+1);
-		strcpy(path2, path);
-		if (nomediafile(path2))
+		if (nomediafile(path))
 		{}
 		else
 		{
 			gtk_list_store_append(vpw->store, &(vpw->iter));
-			gtk_list_store_set(vpw->store, &(vpw->iter), COL_ID, i++, COL_FILEPATH, path, -1);
+			gtk_list_store_set(vpw->store, &(vpw->iter), COL_ID, itemcount++, COL_FILEPATH, path, -1);
 		}
-		free(path2);
 		g_free(path);
-		p = q + 1;
 	}
-	g_free(str);
+	g_strfreev(uris);
 
-	if (!itemcount)
-	{
+//	if (itemcount)
+//	{
 		if (vpq->playerstatus==PLAYING)
 			button2_clicked(vpw->button2, (void*)plp);
 		if (vpq->playerstatus==IDLE)
@@ -1098,7 +1085,7 @@ void drag_data_received_da_event(GtkWidget *widget, GdkDragContext *context, gin
 				button1_clicked(vpw->button1, (void*)plp);
 			}
 		}
-	}
+//	}
 }
 
 gboolean drag_drop_da_event(GtkWidget *widget, GdkDragContext*context, gint x, gint y, guint time, gpointer data)
@@ -1154,10 +1141,11 @@ void init_target_list(vpwidgets *vpw)
 {
 	int i;
 
-	GtkTargetEntry target_entries[2] = 
+	GtkTargetEntry target_entries[3] = 
 	{
 		{ "text/html", GTK_TARGET_OTHER_APP, text_html },
-		{ "STRING", GTK_TARGET_OTHER_APP, string }
+		{ "STRING", GTK_TARGET_OTHER_APP, string },
+		{ "text/uri-list", GTK_TARGET_OTHER_APP, string }
 	};
 
 	for(i=0;i<G_N_ELEMENTS(target_entries);i++)

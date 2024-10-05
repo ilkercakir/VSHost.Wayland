@@ -13,6 +13,7 @@
 #include <libavutil/display.h>
 #include <libavutil/pixfmt.h>
 #include <libavutil/avutil.h>
+#include <libavutil/imgutils.h>
 #include <libavutil/samplefmt.h>
 #include <libavutil/opt.h>
 #include <libavformat/avformat.h>
@@ -23,6 +24,8 @@
 #include "YUV420RGBgl.h"
 #include "AudioPipeNB.h"
 #include "AudioMixer.h"
+
+#define INBUF_SIZE 4096
 
 enum
 {
@@ -56,8 +59,12 @@ typedef struct
 
 	AVFormatContext *pFormatCtx;
 	AVCodecContext *pCodecCtx;
+	AVCodecParameters *pCodecPar;
+	enum AVCodecID pCodecId;
 	int videoStream;
 	AVCodecContext *pCodecCtxA;
+	AVCodecParameters *pCodecParA;
+	enum AVCodecID pCodecIdA;
 	int audioStream;
 	struct SwsContext *sws_ctx;
 	AVCodec *pCodec;
