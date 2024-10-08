@@ -139,8 +139,6 @@ static gpointer audioout_thread_pulseaudio0(gpointer args)
 	//mxthreadparameters *tp = (mxthreadparameters *)&(ao->tp);
 	paplayer pa;
 
-	//speaker *spk = &(tp->spk);
-
 	init_audiomixer(ao->mixerChannels, MX_BLOCKING, ao->format, ao->rate, ao->frames, ao->channels, &(ao->mx));
 
 	pthread_mutex_lock(&(ao->mxmutex));
@@ -148,28 +146,17 @@ static gpointer audioout_thread_pulseaudio0(gpointer args)
 	pthread_cond_signal(&(ao->mxinitcond));
 	pthread_mutex_unlock(&(ao->mxmutex));
 
-	//init_spk(spk, tp->device, ao->format, ao->rate, ao->channels);
 	init_paplayer(&pa, ao->format, ao->rate, ao->channels);
-	//int err;
-	//if ((err=init_audio_hw_spk(spk)))
-	//{
-	//	printf("Init spk error %d\n", err);
-	//}
-	//else
-	//{
-		gdk_threads_add_idle(audioout_led, ao);
-		while (readfrommixer(&(ao->mx)) != MX_STOPPED)
-		{
-			// process mixed stereo frames here
+	gdk_threads_add_idle(audioout_led, ao);
+	while (readfrommixer(&(ao->mx)) != MX_STOPPED)
+	{
+		// process mixed stereo frames here
 
-			//write_spk(spk, ao->mx.outbuffer, ao->mx.outbufferframes);
-			paplayer_add(&pa, ao->mx.outbuffer, ao->mx.outbuffersize);
+		//write_spk(spk, ao->mx.outbuffer, ao->mx.outbufferframes);
+		paplayer_add(&pa, ao->mx.outbuffer, ao->mx.outbuffersize);
 
-			encoder_add_buffer(aen, ao->mx.outbuffer, ao->mx.outbuffersize); // is a blocking call !
-		}
-		//close_audio_hw_spk(spk);
-	//}
-	//close_spk(spk);
+		encoder_add_buffer(aen, ao->mx.outbuffer, ao->mx.outbuffersize); // is a blocking call !
+	}
 	close_paplayer(&pa);
 
 	close_audiomixer(&(ao->mx));
@@ -253,7 +240,11 @@ odevicetype get_odevicetype(char *device)
 {
 	if (!strcmp(device, "pulseaudio"))
 	{
-		return pulseaudio;
+		return opulseaudio;
+	}
+	else if (!strcmp(device, "mediafile"))
+	{
+		return omediafile;
 	}
 	else
 	{
@@ -267,32 +258,41 @@ static void outputdevicescombo_changed(GtkWidget *combo, gpointer data)
 	audiojam *aj = ao->aj;
 	audioeffectchain *aec;
 	int i;
+	idevicetype idevtype;
+	odevicetype odevtype;
 
 	for(i=0;i<aj->maxchains;i++)
 	{
 		aec = &(aj->aec[i]);
 		if (aec->id)
 		{
-			if (get_devicetype(aec->tp.device)==hardwaredevice)
+			idevtype = get_idevicetype(aec->tp.device);
+			if (idevtype==ihardwaredevice)
 				audioeffectchain_terminate_thread(aec);
-			else
+			else if (idevtype==imediafile)
 				audioeffectchain_terminate_thread_ffmpeg(aec);
+			else if (idevtype==ipulseaudio)
+				audioeffectchain_terminate_thread_pulse(aec);
 
 			gdk_threads_add_idle(audioeffectchain_led, aec);
 		}
 	}
 
-	if (get_odevicetype(ao->tp.device)==ohardwaredevice)
+	odevtype = get_odevicetype(ao->tp.device);
+	if (odevtype==ohardwaredevice)
 		audioout_terminate_thread(ao);
-	else
+	else if (odevtype==opulseaudio)
 		audioout_terminate_thread_pulseaudio(ao);
 
 	gchar *device;
 	g_object_get((gpointer)ao->outputdevices, "active-id", &device, NULL);
-	if (get_odevicetype(device)==ohardwaredevice)
+
+	odevtype = get_odevicetype(device);	
+	if (odevtype==ohardwaredevice)
 		audioout_create_thread(ao, device, ao->frames);
-	else
+	else if (odevtype==opulseaudio)
 		audioout_create_thread_pulseaudio(ao, device, ao->frames);
+
 	g_free(device);
 
 	for(i=0;i<aj->maxchains;i++)
@@ -300,16 +300,16 @@ static void outputdevicescombo_changed(GtkWidget *combo, gpointer data)
 		aec = &(aj->aec[i]);
 		if (aec->id)
 		{
-			//gchar *device;
-			//g_object_get((gpointer)aec->inputdevices, "active-id", &device, NULL);
-			//audioeffectchain_create_thread(aec, device, aec->frames, aec->channelbuffers, aec->mx);
-			//g_free(device);
-
 			g_object_get((gpointer)aec->inputdevices, "active-id", &device, NULL);
-			if (get_devicetype(device)==hardwaredevice)
+
+			idevtype = get_idevicetype(device);
+			if (idevtype==ihardwaredevice)
 				audioeffectchain_create_thread(aec, device, aec->frames, aec->channelbuffers, aec->mx);
-			else
+			else if (idevtype==imediafile)
 				audioeffectchain_create_thread_ffmpeg(aec, device, aec->frames, aec->channelbuffers, aec->mx);
+			else if (idevtype==ipulseaudio)
+				audioeffectchain_create_thread_pulse(aec, device, aec->frames, aec->channelbuffers, aec->mx);
+
 			g_free(device);
 		}
 	}
@@ -443,6 +443,8 @@ void recordformats_changed(GtkWidget *combo, gpointer data)
 
 void audioout_init(audioout *ao, snd_pcm_format_t format, unsigned int rate, unsigned int channels, unsigned int frames, int mixerChannels, audiojam *aj, GtkWidget *container, GtkWidget *window)
 {
+	odevicetype odevtype;
+
 	strcpy(ao->name, "Audio Mixer");
 	ao->format = format;
 	ao->rate = rate;
@@ -543,13 +545,25 @@ void audioout_init(audioout *ao, snd_pcm_format_t format, unsigned int rate, uns
 
 	gchar *device;
 	g_object_get((gpointer)ao->outputdevices, "active-id", &device, NULL);
-	audioout_create_thread(ao, device, ao->frames);
+	
+	odevtype = get_odevicetype(device);
+	if (odevtype==ohardwaredevice)
+		audioout_create_thread(ao, device, ao->frames);
+	else if (odevtype==opulseaudio)
+		audioout_create_thread_pulseaudio(ao, device, ao->frames);
+
 	g_free(device);
 }
 
 void audioout_close(audioout *ao)
 {
-	audioout_terminate_thread(ao);
+	odevicetype odevtype;
+	
+	odevtype = get_odevicetype(ao->tp.device);
+	if (odevtype==ohardwaredevice)
+		audioout_terminate_thread(ao);
+	else if (odevtype==opulseaudio)
+		audioout_terminate_thread_pulseaudio(ao);
 
 	close_encoder(&(ao->aen));
 }

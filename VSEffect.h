@@ -15,6 +15,7 @@
 #include "AudioMixer.h"
 #include "VSTMediaPlayer.h"
 #include "VSEffectShared.h"
+#include "PulseAudio.h"
 
 typedef enum
 {
@@ -33,6 +34,7 @@ typedef struct
 	
 	microphone mic;
 	vpwidgets vpw;
+	paplayer pa;
 	playlistparams plparams;
 
 	threadstatus status;
@@ -102,10 +104,11 @@ typedef struct
 
 typedef enum
 {
-	none,
-	hardwaredevice,
-	mediafiledevice
-}devicetype;
+	inone,
+	ihardwaredevice,
+	ipulseaudio,
+	imediafile
+}idevicetype;
 
 void audioeffect_init(audioeffect *ae, int id);
 void audioeffect_setparameter(audioeffect *ae, int i, float value);
@@ -115,8 +118,10 @@ void audioeffect_close(audioeffect *ae);
 
 void audioeffectchain_create_thread(audioeffectchain *aec, char *device, unsigned int frames, int channelbuffers, audiomixer *mx);
 void audioeffectchain_create_thread_ffmpeg(audioeffectchain *aec, char *device, unsigned int frames, int channelbuffers, audiomixer *mx);
+void audioeffectchain_create_thread_pulse(audioeffectchain *aec, char *device, unsigned int frames, int channelbuffers, audiomixer *mx);
 void audioeffectchain_terminate_thread(audioeffectchain *aec);
 void audioeffectchain_terminate_thread_ffmpeg(audioeffectchain *aec);
+void audioeffectchain_terminate_thread_pulse(audioeffectchain *aec);
 void audioeffectchain_save(audioeffectchain *aec);
 void audioeffectchain_init(audioeffectchain *aec, char *name, int id, audiomixer *mx, GtkWidget *container, char *dbpath);
 int audioeffectchain_loadeffect(audioeffectchain *aec, int id, char *path);
@@ -126,6 +131,5 @@ void audioeffectchain_order(audioeffectchain *aec, int effect);
 void audioeffectchain_unorder(audioeffectchain *aec, int effect);
 void audioeffectchain_close(audioeffectchain *aec);
 gboolean audioeffectchain_led(gpointer data);
-
-devicetype get_devicetype(char *device);
+idevicetype get_idevicetype(char *device);
 #endif

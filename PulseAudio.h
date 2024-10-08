@@ -16,7 +16,6 @@
 #include <glib.h>
 
 #include <pulse/pulseaudio.h>
-//#include <pulse/i18n.h>
 #include <sndfile.h>
 
 #include <alsa/asoundlib.h>
@@ -33,6 +32,12 @@ typedef enum
 	PA_STOPPED,
 	PA_IDLE
 }pastatus;
+
+typedef enum
+{
+		RECORD, 
+		PLAYBACK
+}pamode;
 
 typedef struct
 {
@@ -61,9 +66,11 @@ typedef struct
 	int retval;
 
 	pastatus status;
+	pamode mode;
 }paplayer;
 
 void init_paplayer(paplayer *p, snd_pcm_format_t format, unsigned int rate, unsigned int channels);
+void init_parecorder(paplayer *p, snd_pcm_format_t format, unsigned int rate, unsigned int channels);
 void paplayer_add(paplayer *p, char *inbuffer, int inbuffersize);
 void paplayer_remove(paplayer *p, char *outbuffer, int outbuffersize);
 void close_paplayer(paplayer *p);

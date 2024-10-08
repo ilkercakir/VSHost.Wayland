@@ -23,13 +23,11 @@ long_line_behaviour=1
 long_line_column=72
 
 [files]
-current_page=3
-FILE_NAME_0=0;C;0;EUTF-8;1;1;0;%2Fhome%2Fpi%2FDocuments%2FC%2FVSHost.Wayland%2FAudioDev.c;0;4
-FILE_NAME_1=8050;C;0;EUTF-8;1;1;0;%2Fhome%2Fpi%2FDocuments%2FC%2FVSHost.Wayland%2FVSTVideoPlayer.c;0;4
-FILE_NAME_2=1134;C++;0;EUTF-8;1;1;0;%2Fhome%2Fpi%2FDocuments%2FC%2FVSHost.Wayland%2FVSTVideoPlayer.h;0;4
-FILE_NAME_3=29537;C;0;EUTF-8;1;1;0;%2Fhome%2Fpi%2FDocuments%2FC%2FVSHost.Wayland%2FVSTMediaPlayer.c;0;4
-FILE_NAME_4=1023;C++;0;EUTF-8;1;1;0;%2Fhome%2Fpi%2FDocuments%2FC%2FVSHost.Wayland%2FVSTMediaPlayer.h;0;4
-FILE_NAME_5=518;C;0;EUTF-8;1;1;0;%2Fhome%2Fpi%2FDocuments%2FC%2Fexamples%2Fdrag_and_drop.c;0;4
+current_page=2
+FILE_NAME_0=16428;C;0;EUTF-8;1;1;0;%2Fhome%2Fpi%2FDocuments%2FC%2FVSHost.Wayland%2FVSTVideoPlayer.c;0;4
+FILE_NAME_1=1134;C++;0;EUTF-8;1;1;0;%2Fhome%2Fpi%2FDocuments%2FC%2FVSHost.Wayland%2FVSTVideoPlayer.h;0;4
+FILE_NAME_2=4289;C;0;EUTF-8;1;1;0;%2Fhome%2Fpi%2FDocuments%2FC%2FVSHost.Wayland%2FPulseAudio.c;0;4
+FILE_NAME_3=0;C++;0;EUTF-8;1;1;0;%2Fhome%2Fpi%2FDocuments%2FC%2FVSHost.Wayland%2FPulseAudio.h;0;4
 
 [VTE]
 last_dir=/home/pi

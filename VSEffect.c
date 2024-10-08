@@ -1,5 +1,5 @@
 /*
- * VSHost.c
+ * VSEffect.c
  * 
  * Copyright 2018  <pi@raspberrypi>
  * 
@@ -358,7 +358,7 @@ void audioeffect_initparameter(audioeffect *ae, int i, char* name, float minval,
 	ae->parameter[i].parent = (void *)ae;
 	ae->parameter[i].index = i;
 
-	char *p, *q, s[4];
+	char *p, *q, s[20];
 	int len;
 	p = ae->sopath;
 	if ((q = strstr(p, ".so")))
@@ -466,6 +466,22 @@ void audioeffect_setdependentparameter(audioeffect *ae, int i, float value)
 	gdk_threads_add_idle(audioeffect_setdependentparameter_idle, aei);
 }
 
+idevicetype get_idevicetype(char *device)
+{
+	if (!strcmp(device, "pulseaudio"))
+	{
+		return ipulseaudio;
+	}
+	else if (!strcmp(device, "mediafile"))
+	{
+		return imediafile;
+	}
+	else
+	{
+		return ihardwaredevice;
+	}
+}
+
 // Audio effect chain
 
 // thread
@@ -475,20 +491,29 @@ gboolean audioeffectchain_led(gpointer data)
 
 //printf("%s -> %s\n", aec->name, (aec->tp.mic.status == MC_RUNNING?"green":"red"));
 
-	if (get_devicetype(aec->tp.device)==hardwaredevice)
+	idevicetype idevtype = get_idevicetype(aec->tp.device);
+	if (idevtype==ihardwaredevice)
 	{
 		if (aec->tp.mic.status == MC_RUNNING)
 			gtk_image_set_from_file(GTK_IMAGE(aec->led), "./images/green.png");
 		else
 			gtk_image_set_from_file(GTK_IMAGE(aec->led), "./images/red.png");
 	}
-	else
+	else if (idevtype==imediafile)
 	{
 		if (aec->tp.vpw.ap.status == CQ_RUNNING)
 			gtk_image_set_from_file(GTK_IMAGE(aec->led), "./images/green.png");
 		else
 			gtk_image_set_from_file(GTK_IMAGE(aec->led), "./images/red.png");		
 	}
+	else if (idevtype==ipulseaudio)
+	{
+		if (aec->tp.pa.ap.status == CQ_RUNNING)
+			gtk_image_set_from_file(GTK_IMAGE(aec->led), "./images/green.png");
+		else
+			gtk_image_set_from_file(GTK_IMAGE(aec->led), "./images/red.png");		
+	}
+
 	return FALSE;
 }
 
@@ -641,6 +666,62 @@ void audioeffectchain_create_thread_ffmpeg(audioeffectchain *aec, char *device, 
 	}
 }
 
+static gpointer audioeffectchain_thread_pulse0(gpointer args)
+{
+	int ctype = PTHREAD_CANCEL_ASYNCHRONOUS;
+	int ctype_old;
+	pthread_setcanceltype(ctype, &ctype_old);
+
+	audioeffectchain *aec = (audioeffectchain *)args;
+	threadparameters *tp = (threadparameters *)&(aec->tp);
+	paplayer *pa = (paplayer *)&(tp->pa);
+
+	init_parecorder(pa, aec->format, aec->rate, aec->channels);
+	connect_audiojack(tp->channelbuffers, &(tp->jack), aec->mx);
+
+	gdk_threads_add_idle(audioeffectchain_led, aec);
+	audiopipe *ap = &(pa->ap);
+	while ((audioCQ_remove(ap)==CQ_RUNNING) && (tp->status==TH_RUNNING))
+	{
+		// Process input frames here
+		audioeffectchain_process(aec, ap->buffer, ap->buffersize);
+//printf("%s %d\n", aec->device, ap->buffersize);
+		writetojack(ap->buffer, ap->buffersize, &(tp->jack));
+	}
+
+	close_paplayer(pa); // recorder closed same as player
+
+	close_audiojack(&(tp->jack));
+
+//printf("exiting %s\n", aec->name);
+	aec->tp.retval = 0;
+	pthread_exit(&(aec->tp.retval));
+}
+
+void audioeffectchain_create_thread_pulse(audioeffectchain *aec, char *device, unsigned int frames, int channelbuffers, audiomixer *mx)
+{
+	int err;
+
+	aec->mx = mx;
+	aec->tp.aec = aec;
+	strcpy(aec->tp.device, device);
+	aec->tp.frames = frames;
+	aec->tp.channelbuffers = channelbuffers;
+	aec->tp.status = TH_RUNNING;
+
+	err = pthread_create(&(aec->tp.tid), NULL, &audioeffectchain_thread_pulse0, (void*)aec);
+	if (err)
+	{}
+//printf("thread %s -> %d tid %d\n", aec->name, 1, aec->tp.tid);
+	CPU_ZERO(&(aec->tp.cpu));
+	CPU_SET(1, &(aec->tp.cpu));
+	CPU_SET(2, &(aec->tp.cpu));
+	if ((err=pthread_setaffinity_np(aec->tp.tid, sizeof(cpu_set_t), &(aec->tp.cpu))))
+	{
+		//printf("pthread_setaffinity_np error %d\n", err);
+	}
+}
+
 void audioeffectchain_terminate_thread(audioeffectchain *aec)
 {
 	int i;
@@ -661,6 +742,26 @@ void audioeffectchain_terminate_thread_ffmpeg(audioeffectchain *aec)
 {
 	int i;
 	audiopipe *ap = &(aec->tp.vpw.ap);
+	playlistparams *plp = &(aec->tp.plparams);
+
+	press_vp_stop_button(plp);
+
+	audioCQ_signalstop(ap);
+
+	if (aec->tp.tid)
+	{
+		aec->tp.status = TH_STOPPED;
+		if ((i=pthread_join(aec->tp.tid, NULL)))
+			printf("pthread_join error, %s, %d\n", aec->name, i);
+
+		aec->tp.tid = 0;
+	}
+}
+
+void audioeffectchain_terminate_thread_pulse(audioeffectchain *aec)
+{
+	int i;
+	audiopipe *ap = &(aec->tp.pa.ap);
 
 	audioCQ_signalstop(ap);
 
@@ -1073,14 +1174,6 @@ void audioeffectchain_effectlist(audioeffectchain *aec)
 // listview
 	u_create_view_and_model(aec);
 	
-/*
-	gtk_drag_dest_set(vpw->listview, GTK_DEST_DEFAULT_ALL, vpw->target_entries, G_N_ELEMENTS(vpw->target_entries), GDK_ACTION_COPY | GDK_ACTION_MOVE );
-	g_signal_connect(vpw->listview, "drag_data_received", G_CALLBACK(drag_data_received_da_event), (void*)plp);
-	g_signal_connect(vpw->listview, "drag_drop", G_CALLBACK(drag_drop_da_event), NULL);
-	g_signal_connect(vpw->listview, "drag_motion", G_CALLBACK(drag_motion_da_event), NULL);
-	g_signal_connect(vpw->listview, "drag_leave", G_CALLBACK(drag_leave_da_event), NULL);
-*/
-
 	gtk_widget_show_all(u->window);
 }
 
@@ -1228,35 +1321,29 @@ void audioeffectchain_delete(audioeffectchain *aec)
 
 // effect chain
 
-devicetype get_devicetype(char *device)
-{
-	if (!strcmp(device, "mediafile"))
-	{
-		return mediafiledevice;
-	}
-	else
-	{
-		return hardwaredevice;
-	}
-}
-
 static void inputdevicescombo_changed(GtkWidget *combo, gpointer data)
 {
 	audioeffectchain *aec = (audioeffectchain *)data;
 	gchar *device;
 
-	if (get_devicetype(aec->tp.device)==hardwaredevice)
+	idevicetype idevtype = get_idevicetype(aec->tp.device);
+	if (idevtype==ihardwaredevice)
 		audioeffectchain_terminate_thread(aec);
-	else
+	else if (idevtype==imediafile)
 		audioeffectchain_terminate_thread_ffmpeg(aec);
+	else if (idevtype==ipulseaudio)
+		audioeffectchain_terminate_thread_pulse(aec);
 
 	gdk_threads_add_idle(audioeffectchain_led, aec);
 
 	g_object_get((gpointer)aec->inputdevices, "active-id", &device, NULL);
-	if (get_devicetype(device)==hardwaredevice)
+	if (get_idevicetype(device)==ihardwaredevice)
 		audioeffectchain_create_thread(aec, device, aec->frames, aec->channelbuffers, aec->mx);
-	else
+	else if (get_idevicetype(device)==imediafile)
 		audioeffectchain_create_thread_ffmpeg(aec, device, aec->frames, aec->channelbuffers, aec->mx);
+	else if (get_idevicetype(device)==ipulseaudio)
+		audioeffectchain_create_thread_pulse(aec, device, aec->frames, aec->channelbuffers, aec->mx);
+
 	g_free(device);
 }
 
@@ -1354,10 +1441,13 @@ void audioeffectchain_init(audioeffectchain *aec, char *name, int id, audiomixer
 	g_object_get((gpointer)aec->inputdevices, "active-id", &device, NULL);
 //	audioeffectchain_create_thread(aec, device, aec->frames, aec->channelbuffers, mx);
 
-	if (get_devicetype(device)==hardwaredevice)
+	idevicetype idevtype = get_idevicetype(device);
+	if (idevtype==ihardwaredevice)
 		audioeffectchain_create_thread(aec, device, aec->frames, aec->channelbuffers, mx);
-	else
+	else if (idevtype==imediafile)
 		audioeffectchain_create_thread_ffmpeg(aec, device, aec->frames, aec->channelbuffers, mx);
+	else if (idevtype==ipulseaudio)
+		audioeffectchain_create_thread_pulse(aec, device, aec->frames, aec->channelbuffers, mx);
 
 	g_free(device);
 }
@@ -1534,10 +1624,13 @@ void audioeffectchain_close(audioeffectchain *aec)
 {
 	if (aec->id)
 	{
-		if (get_devicetype(aec->tp.device)==hardwaredevice)
+		idevicetype idevtype = get_idevicetype(aec->tp.device);
+		if (idevtype==ihardwaredevice)
 			audioeffectchain_terminate_thread(aec);
-		else
+		else if (idevtype==imediafile)
 			audioeffectchain_terminate_thread_ffmpeg(aec);
+		else if (idevtype==ipulseaudio)
+			audioeffectchain_terminate_thread_pulse(aec);
 
 		pthread_mutex_lock(&(aec->rackmutex));
 		aec->id = 0;

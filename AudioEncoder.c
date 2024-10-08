@@ -168,6 +168,8 @@ static void* encoder_thread(void* args)
 		ret = -1;
 	}
 
+	av_frame_free(&(aen->frame));
+
 //printf("exiting encoder_thread\n");
 	aen->retval_thread = ret;
 	pthread_exit(&(aen->retval_thread));
@@ -257,8 +259,6 @@ int start_encoder(audioencoder *aen, char *filename, enum AVCodecID id, enum AVS
 	}
 	else
 	{
-//		av_strlcpy(aen->formatcontext->url, filename, sizeof(aen->formatcontext->url));
-
 		/* Find the encoder to be used by its name. */
 		aen->codec = (AVCodec*)avcodec_find_encoder(aen->id);
 		if (!aen->codec)

@@ -253,6 +253,14 @@ void populate_input_devices_list(GtkWidget *comboinputdev)
 		inpreset = 1;
 		g_object_set((gpointer)comboinputdev, "active-id", devicename, NULL);
 	}
+
+	strcpy(devicename, "pulseaudio");
+	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(comboinputdev), devicename, "Pulse Audio"); // input from pulse audio
+	if (!inpreset)
+	{
+		inpreset = 1;
+		g_object_set((gpointer)comboinputdev, "active-id", devicename, NULL);
+	}
 }
 
 void populate_output_devices_list(GtkWidget *combooutputdev)
