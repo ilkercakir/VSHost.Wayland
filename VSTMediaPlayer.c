@@ -144,7 +144,7 @@ gboolean play_next(vpwidgets *vpw)
 		{
 			gdk_threads_add_idle(focus_iter_idle, (void*)vpw);
 		}
-		else
+		else // back to first item
 		{
 			if (gtk_tree_model_iter_nth_child(model, &(vpw->iter), NULL, 0))
 			{
@@ -157,6 +157,19 @@ gboolean play_next(vpwidgets *vpw)
 			}
 		}
 	}
+	else // select first
+	{
+		if (gtk_tree_model_iter_nth_child(model, &(vpw->iter), NULL, 0))
+		{
+			gdk_threads_add_idle(focus_iter_idle, (void*)vpw);
+		}
+		else
+		{
+			printf("no entries\n");
+			return FALSE;
+		}
+	}
+	
 	if (vpw->vp.now_playing)
 	{
 		g_free(vpw->vp.now_playing);
@@ -176,28 +189,33 @@ gboolean play_prev(vpwidgets *vpw)
 	model = gtk_tree_view_get_model(GTK_TREE_VIEW(vpw->listview));
 	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(vpw->listview));
 
-	gtk_tree_selection_get_selected(selection, &model, &(vpw->iter));
-	if (gtk_tree_model_iter_previous(model, &(vpw->iter)))
+	if (gtk_tree_selection_get_selected(selection, &model, &(vpw->iter)))
 	{
-		//gtk_tree_selection_select_iter(selection, &(vpw->iter));
-		gdk_threads_add_idle(focus_iter_idle, (void*)vpw);
+		if (gtk_tree_model_iter_previous(model, &(vpw->iter)))
+		{
+			gdk_threads_add_idle(focus_iter_idle, (void*)vpw);
+		}
+		else
+		{
+			gint nodecount = gtk_tree_model_iter_n_children(model, NULL);
+			if (nodecount)
+			{
+				if (gtk_tree_model_iter_nth_child(model, &(vpw->iter), NULL, nodecount-1))
+				{
+					gdk_threads_add_idle(focus_iter_idle, (void*)vpw);
+				}
+			}
+			else // should not happen
+			{
+				printf("no entries\n");
+					return FALSE;
+			}
+		}
 	}
 	else
 	{
-		gint nodecount = gtk_tree_model_iter_n_children(model, NULL);
-		if (nodecount)
-		{
-			if (gtk_tree_model_iter_nth_child(model, &(vpw->iter), NULL, nodecount-1))
-			{
-				//gtk_tree_selection_select_iter(selection, &(vpw->iter));
-				gdk_threads_add_idle(focus_iter_idle, (void*)vpw);
-			}
-			else
-			{
-				printf("no entries\n");
-				return FALSE;
-			}
-		}
+		printf("no entries\n");
+		return FALSE;
 	}
 
 	if (vpw->vp.now_playing)

@@ -315,12 +315,12 @@ void init_paplayer(paplayer *p, snd_pcm_format_t format, unsigned int rate, unsi
 	p->sample_spec.channels = (uint8_t)channels;
 	assert(pa_sample_spec_valid(&(p->sample_spec)));
 	p->channel_map_set = 0;
-	p->latency = 100000; // start latency in micro seconds
+	p->latency = 10000; // start latency in micro seconds
 	p->name = "VSHost";
 	p->status = PA_RUNNING;
 	p->mode = PLAYBACK;
 
-	audioCQ_init(&(p->ap), format, rate, channels, 1024, 20*1024);
+	audioCQ_init(&(p->ap), format, rate, channels, 1024, 6*1024);
 
 	err = pthread_create(&(p->tid), NULL, &pulseaudio_thread, (void*)p);
 	if (err)
@@ -358,12 +358,12 @@ void init_parecorder(paplayer *p, snd_pcm_format_t format, unsigned int rate, un
 	p->sample_spec.channels = (uint8_t)channels;
 	assert(pa_sample_spec_valid(&(p->sample_spec)));
 	p->channel_map_set = 0;
-	p->latency = 100000; // start latency in micro seconds
+	p->latency = 10000; // start latency in micro seconds
 	p->name = "VSHost";
 	p->status = PA_RUNNING;
 	p->mode = RECORD;
 
-	audioCQ_init(&(p->ap), format, rate, channels, 1024, 20*1024);
+	audioCQ_init(&(p->ap), format, rate, channels, 1024, 6*1024);
 
 	err = pthread_create(&(p->tid), NULL, &pulseaudio_thread, (void*)p);
 	if (err)
