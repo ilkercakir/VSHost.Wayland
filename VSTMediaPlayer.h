@@ -82,6 +82,7 @@ typedef struct
 {
 vpwidgets *vpw;
 int vqMaxLength, thread_count;
+pthread_attr_t attr;
 snd_pcm_format_t format;
 unsigned int rate, channels;
 unsigned int frames, cqbufferframes;

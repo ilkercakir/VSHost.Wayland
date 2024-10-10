@@ -77,7 +77,7 @@ char* strlastpart(char *src, char *search, int lowerupper)
 	return q;
 }
 
-static int nomediafile(char *filepath)
+int nomediafile(char *filepath)
 {
 	return
 	(
@@ -152,7 +152,7 @@ gboolean play_next(vpwidgets *vpw)
 			}
 			else
 			{
-				printf("no entries\n");
+				//printf("no entries\n");
 				return FALSE;
 			}
 		}
@@ -165,7 +165,7 @@ gboolean play_next(vpwidgets *vpw)
 		}
 		else
 		{
-			printf("no entries\n");
+			//printf("no entries\n");
 			return FALSE;
 		}
 	}
@@ -326,13 +326,14 @@ int create_thread0_videoplayer(vpwidgets *vpw, int vqMaxLength, int thread_count
 	return(v->stoprequested);
 }
 
-static gpointer playlist_thread(gpointer args)
+gpointer playlist_thread(gpointer args)
 {
 	int ctype = PTHREAD_CANCEL_ASYNCHRONOUS;
 	int ctype_old;
 	pthread_setcanceltype(ctype, &ctype_old);
 
 	playlistparams *plp = (playlistparams*)args;
+	vpwidgets *vpw = plp->vpw;
 
 	while(1)
 	{
@@ -341,6 +342,8 @@ static gpointer playlist_thread(gpointer args)
 		if (!play_next(plp->vpw))
 			break;
 	}
+
+	button2_clicked(vpw->button2, (gpointer)plp);
 
 //printf("exiting playlist_thread\n");
 	plp->vpw->retval0 = 0;
@@ -351,15 +354,26 @@ int create_playlist_thread(playlistparams *plp)
 {
 	int err;
 
-	err = pthread_create(&(plp->vpw->tid), NULL, &playlist_thread, (void *)plp);
-	if (err)
-	{}
-/*
-//printf("playlist_thread->%d\n", 0);
-	if ((err=pthread_setaffinity_np(plp->vpw->tid, sizeof(cpu_set_t), &(plp->vpw->cpu[0]))))
-		printf("pthread_setaffinity_np error %d\n", err);
-*/
-	return(0);
+	if ((err = pthread_attr_init(&(plp->attr))))
+	{
+		printf("attr_init error %d\n", err);
+	}
+	else
+	{
+		if ((err = pthread_attr_setdetachstate(&(plp->attr), PTHREAD_CREATE_DETACHED)))
+		{
+			printf("attr_setdetachedstate error %d\n", err);
+		}
+		else
+		{
+			if ((err = pthread_create(&(plp->vpw->tid), &(plp->attr), &playlist_thread, (void *)plp)))
+			{
+				printf("pthread_create error %d\n", err);
+			}		
+		}
+	}
+
+	return err;
 }
 
 int select_callback(void *data, int argc, char **argv, char **azColName) 
@@ -384,7 +398,7 @@ int select_callback(void *data, int argc, char **argv, char **azColName)
 	return 0;
 }
 
-static GtkTreeModel* create_and_fill_model(vpwidgets *vpw, int mode)
+GtkTreeModel* create_and_fill_model(vpwidgets *vpw, int mode)
 {
 	sqlite3 *db;
 	char *err_msg = NULL;
@@ -451,7 +465,7 @@ void search_destroy(gpointer data)
 	//g_free(data);
 }
 
-static GtkWidget* create_view_and_model(vpwidgets *vpw)
+GtkWidget* create_view_and_model(vpwidgets *vpw)
 {
 	GtkCellRenderer *renderer;
 	GtkTreeModel *model;
@@ -482,7 +496,7 @@ static GtkWidget* create_view_and_model(vpwidgets *vpw)
 	return view;
 }
 
-static void button1_clicked(GtkWidget *button, gpointer data)
+void button1_clicked(GtkWidget *button, gpointer data)
 {
 	playlistparams *plp = (playlistparams*)data;
 	vpwidgets *vpw = plp->vpw;
@@ -493,7 +507,7 @@ static void button1_clicked(GtkWidget *button, gpointer data)
 	if (!(vpp->now_playing))
 		return;
 
-	if((ret=create_playlist_thread(plp))<0)
+	if ((ret=create_playlist_thread(plp))) // Detached thread
 	{
 		printf("create_playlist_thread error %d\n", ret);
 		return;
@@ -507,7 +521,7 @@ static void button1_clicked(GtkWidget *button, gpointer data)
 
 }
 
-static void button2_clicked(GtkWidget *button, gpointer data)
+void button2_clicked(GtkWidget *button, gpointer data)
 {
 	playlistparams *plp = (playlistparams*)data;
 	vpwidgets *vpw = plp->vpw;
@@ -515,10 +529,6 @@ static void button2_clicked(GtkWidget *button, gpointer data)
 
 //g_print("Button 2 clicked\n");
 	request_stop_frame_reader(vp);
-
-	int i;
-	if ((i=pthread_join(vpw->tid, NULL)))
-		printf("pthread_join error, vpw->tid, %d\n", i);
 
 	gtk_widget_set_sensitive(vpw->button2, FALSE);
 	gtk_widget_set_sensitive(vpw->button8, FALSE);
@@ -528,7 +538,7 @@ static void button2_clicked(GtkWidget *button, gpointer data)
 }
 
 /*
-static void buttonParameters_clicked(GtkWidget *button, gpointer data)
+void buttonParameters_clicked(GtkWidget *button, gpointer data)
 {
 	playlistparams *plp = (playlistparams*)data;
 	vpwidgets *vpw = plp->vpw;
@@ -540,7 +550,7 @@ static void buttonParameters_clicked(GtkWidget *button, gpointer data)
 }
 */
 
-static void button3_clicked(GtkWidget *button, gpointer data)
+void button3_clicked(GtkWidget *button, gpointer data)
 {
 	playlistparams *plp = (playlistparams*)data;
 	vpwidgets *vpw = plp->vpw;
@@ -560,7 +570,7 @@ static void button3_clicked(GtkWidget *button, gpointer data)
 	gtk_tree_view_set_search_equal_func(GTK_TREE_VIEW(vpw->listview), search_equal_func, (void*)vpw, search_destroy);
 }
 
-static void button4_clicked(GtkWidget *button, gpointer data)
+void button4_clicked(GtkWidget *button, gpointer data)
 {
 	playlistparams *plp = (playlistparams*)data;
 	vpwidgets *vpw = plp->vpw;
@@ -647,7 +657,7 @@ void listdir(const char *name, sqlite3 *db, int *id)
 	closedir(dir);
 }
 
-static void button6_clicked(GtkWidget *button, gpointer data)
+void button6_clicked(GtkWidget *button, gpointer data)
 {
 	playlistparams *plp = (playlistparams*)data;
 	vpwidgets *vpw = plp->vpw;
@@ -739,7 +749,7 @@ int select_add_lastid(vpwidgets *vpw)
 	return(vpw->last_id);
 }
 
-static void button7_clicked(GtkWidget *button, gpointer data)
+void button7_clicked(GtkWidget *button, gpointer data)
 {
 	playlistparams *plp = (playlistparams*)data;
 	vpwidgets *vpw = plp->vpw;
@@ -810,7 +820,7 @@ static void button7_clicked(GtkWidget *button, gpointer data)
 	gtk_widget_destroy(dialog);
 }
 
-static void button8_clicked(GtkWidget *button, gpointer data)
+void button8_clicked(GtkWidget *button, gpointer data)
 {
 	playlistparams *plp = (playlistparams*)data;
 	vpwidgets *vpw = plp->vpw;
@@ -823,7 +833,7 @@ static void button8_clicked(GtkWidget *button, gpointer data)
 	}
 }
 
-static void button9_clicked(GtkWidget *button, gpointer data)
+void button9_clicked(GtkWidget *button, gpointer data)
 {
 	playlistparams *plp = (playlistparams*)data;
 	vpwidgets *vpw = plp->vpw;
@@ -836,7 +846,7 @@ static void button9_clicked(GtkWidget *button, gpointer data)
 	}
 }
 
-static void button10_clicked(GtkWidget *button, gpointer data)
+void button10_clicked(GtkWidget *button, gpointer data)
 {
 	playlistparams *plp = (playlistparams*)data;
 	vpwidgets *vpw = plp->vpw;
@@ -867,7 +877,7 @@ static void button10_clicked(GtkWidget *button, gpointer data)
 	}
 }
 
-static void button11_clicked(GtkWidget *button, gpointer data)
+void button11_clicked(GtkWidget *button, gpointer data)
 {
 	playlistparams *plp = (playlistparams*)data;
 	vpwidgets *vpw = plp->vpw;
@@ -1015,12 +1025,12 @@ void listview_onRowActivated(GtkTreeView *treeview, GtkTreePath *path, GtkTreeVi
 }
 
 /* Called when the windows are realized */
-static void vp_realize_cb(GtkWidget *widget, gpointer data)
+void vp_realize_cb(GtkWidget *widget, gpointer data)
 {
 //	vpwidgets *vpw = (vpwidgets*)data;
 }
 
-static gboolean vp_delete_event(GtkWidget *widget, GdkEvent *event, gpointer data)
+gboolean vp_delete_event(GtkWidget *widget, GdkEvent *event, gpointer data)
 {
     /* If you return FALSE in the "delete-event" signal handler,
      * GTK will emit the "destroy" signal. Returning TRUE means
@@ -1031,7 +1041,7 @@ static gboolean vp_delete_event(GtkWidget *widget, GdkEvent *event, gpointer dat
     return TRUE;
 }
 
-static void vp_destroy(GtkWidget *widget, gpointer data)
+void vp_destroy(GtkWidget *widget, gpointer data)
 {
 //printf("vp_destroy\n");
     //gtk_main_quit();
