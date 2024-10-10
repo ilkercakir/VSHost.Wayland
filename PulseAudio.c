@@ -203,11 +203,10 @@ void context_state_callback(pa_context *c, void *userdata)
 			pa_stream_set_write_callback(p->stream, stream_write_callback, userdata);
 			pa_stream_set_read_callback(p->stream, stream_read_callback, userdata);
 
-			p->bufattr.fragsize = (uint32_t) -1;
-			//p->bufattr.maxlength = (uint32_t) -1;
-			p->bufattr.maxlength = pa_usec_to_bytes(p->latency,&(p->sample_spec));
-			p->bufattr.minreq = (uint32_t) -1;
-			p->bufattr.prebuf = (uint32_t) -1;
+			p->bufattr.fragsize = pa_usec_to_bytes(p->latency,&(p->sample_spec)); //(uint32_t) -1;
+			p->bufattr.maxlength = pa_usec_to_bytes(p->latency,&(p->sample_spec)); // (uint32_t) -1;
+			p->bufattr.minreq = pa_usec_to_bytes(p->latency,&(p->sample_spec)); //(uint32_t) -1;
+			p->bufattr.prebuf = 0; //(uint32_t) -1;
 			p->bufattr.tlength = pa_usec_to_bytes(p->latency,&(p->sample_spec));
 
 			p->stream_flags = PA_STREAM_INTERPOLATE_TIMING | PA_STREAM_NOT_MONOTONIC | PA_STREAM_AUTO_TIMING_UPDATE | PA_STREAM_ADJUST_LATENCY;
