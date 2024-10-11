@@ -31,7 +31,7 @@ gboolean widget_state_set(GtkWidget *togglebutton, gboolean state, gpointer data
 	audioeffect *ae = (audioeffect*)(p->parent);
 
 	audioeffect_setparameter(ae, p->index, (float)state);
-	return(TRUE);
+	return(FALSE);
 }
 
 void widget_value_changed(GtkWidget *widget, gpointer data)
@@ -256,8 +256,8 @@ void audioeffect_init(audioeffect *ae, int id)
 				gtk_container_add(GTK_CONTAINER(ae->parameter[i].vbox), ae->parameter[i].swbox);
 				
 				w = ae->parameter[i].pwidget = gtk_switch_new();
-				gtk_switch_set_active(GTK_SWITCH(w), ae->parameter[i].value);
 				g_signal_connect(GTK_SWITCH(w), "state-set", G_CALLBACK(widget_state_set), &(ae->parameter[i]));
+				gtk_switch_set_active(GTK_SWITCH(w), ae->parameter[i].value);
 				gtk_container_add(GTK_CONTAINER(ae->parameter[i].swbox), w);
 				//gtk_box_pack_start(GTK_BOX(ae->parameter[i].swbox), w, TRUE, TRUE, 0);
 				break;

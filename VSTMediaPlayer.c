@@ -496,6 +496,7 @@ GtkWidget* create_view_and_model(vpwidgets *vpw)
 	return view;
 }
 
+// Play
 void button1_clicked(GtkWidget *button, gpointer data)
 {
 	playlistparams *plp = (playlistparams*)data;
@@ -521,6 +522,7 @@ void button1_clicked(GtkWidget *button, gpointer data)
 
 }
 
+// Stop
 void button2_clicked(GtkWidget *button, gpointer data)
 {
 	playlistparams *plp = (playlistparams*)data;
@@ -550,6 +552,7 @@ void buttonParameters_clicked(GtkWidget *button, gpointer data)
 }
 */
 
+// Clear
 void button3_clicked(GtkWidget *button, gpointer data)
 {
 	playlistparams *plp = (playlistparams*)data;
@@ -570,6 +573,7 @@ void button3_clicked(GtkWidget *button, gpointer data)
 	gtk_tree_view_set_search_equal_func(GTK_TREE_VIEW(vpw->listview), search_equal_func, (void*)vpw, search_destroy);
 }
 
+// Load
 void button4_clicked(GtkWidget *button, gpointer data)
 {
 	playlistparams *plp = (playlistparams*)data;
@@ -657,6 +661,7 @@ void listdir(const char *name, sqlite3 *db, int *id)
 	closedir(dir);
 }
 
+// Catalog
 void button6_clicked(GtkWidget *button, gpointer data)
 {
 	playlistparams *plp = (playlistparams*)data;
@@ -749,6 +754,7 @@ int select_add_lastid(vpwidgets *vpw)
 	return(vpw->last_id);
 }
 
+// Add File
 void button7_clicked(GtkWidget *button, gpointer data)
 {
 	playlistparams *plp = (playlistparams*)data;
@@ -820,6 +826,7 @@ void button7_clicked(GtkWidget *button, gpointer data)
 	gtk_widget_destroy(dialog);
 }
 
+// Next
 void button8_clicked(GtkWidget *button, gpointer data)
 {
 	playlistparams *plp = (playlistparams*)data;
@@ -833,6 +840,7 @@ void button8_clicked(GtkWidget *button, gpointer data)
 	}
 }
 
+// Prev
 void button9_clicked(GtkWidget *button, gpointer data)
 {
 	playlistparams *plp = (playlistparams*)data;
@@ -846,6 +854,7 @@ void button9_clicked(GtkWidget *button, gpointer data)
 	}
 }
 
+// Resume / Pause
 void button10_clicked(GtkWidget *button, gpointer data)
 {
 	playlistparams *plp = (playlistparams*)data;
@@ -877,6 +886,7 @@ void button10_clicked(GtkWidget *button, gpointer data)
 	}
 }
 
+// Open Files
 void button11_clicked(GtkWidget *button, gpointer data)
 {
 	playlistparams *plp = (playlistparams*)data;
@@ -1094,26 +1104,23 @@ void drag_data_received_da_event(GtkWidget *widget, GdkDragContext *context, gin
 	}
 	g_strfreev(uris);
 
-//	if (itemcount)
-//	{
-		if (vpq->playerstatus==PLAYING)
-			button2_clicked(vpw->button2, (void*)plp);
-		if (vpq->playerstatus==IDLE)
+	if (vpq->playerstatus==PLAYING)
+		button2_clicked(vpw->button2, (void*)plp);
+	if (vpq->playerstatus==IDLE)
+	{
+		if (gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(vpw->store), &(vpw->iter), NULL, 0))
 		{
-			if (gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(vpw->store), &(vpw->iter), NULL, 0))
+			if (vp->now_playing)
 			{
-				if (vp->now_playing)
-				{
-					g_free(vp->now_playing);
-					vp->now_playing = NULL;
-				}
-				gtk_tree_model_get(GTK_TREE_MODEL(vpw->store), &(vpw->iter), COL_FILEPATH, &(vp->now_playing), -1);
-				gdk_threads_add_idle(focus_iter_idle, (void*)vpw);
-				gtk_notebook_set_current_page(GTK_NOTEBOOK(vpw->notebook), 0);
-				button1_clicked(vpw->button1, (void*)plp);
+				g_free(vp->now_playing);
+				vp->now_playing = NULL;
 			}
+			gtk_tree_model_get(GTK_TREE_MODEL(vpw->store), &(vpw->iter), COL_FILEPATH, &(vp->now_playing), -1);
+			gdk_threads_add_idle(focus_iter_idle, (void*)vpw);
+			gtk_notebook_set_current_page(GTK_NOTEBOOK(vpw->notebook), 0);
+			button1_clicked(vpw->button1, (void*)plp);
 		}
-//	}
+	}
 }
 
 gboolean drag_drop_da_event(GtkWidget *widget, GdkDragContext*context, gint x, gint y, guint time, gpointer data)
