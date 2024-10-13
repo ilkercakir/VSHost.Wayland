@@ -99,6 +99,8 @@ int nomediafile(char *filepath)
 
 void init_playlistparams(playlistparams *plparams, vpwidgets *vpw, int vqMaxLength, snd_pcm_format_t format, unsigned int rate, unsigned int channels, unsigned int frames, unsigned int cqbufferframes, int thread_count)
 {
+	int ret;
+
 	plparams->vpw = vpw;
 	plparams->vqMaxLength = vqMaxLength;
 	plparams->format = format;
@@ -109,11 +111,45 @@ void init_playlistparams(playlistparams *plparams, vpwidgets *vpw, int vqMaxLeng
 	plparams->thread_count = thread_count;
 
 	audioCQ_init(&(plparams->vpw->ap), plparams->format, plparams->rate, plparams->channels, plparams->frames, plparams->cqbufferframes);
+
+	plparams->status = PLIDLE;
+
+	if((ret=pthread_mutex_init(&(plparams->statusmutex), NULL))!=0 )
+		printf("Playlist mutex init failed, %d\n", ret);
+
+	if((ret=pthread_cond_init(&(plparams->statuscond), NULL))!=0 )
+		printf("Playlist cond init failed, %d\n", ret);
 }
 
 void close_playlistparams(playlistparams *plparams)
 {
 	audioCQ_close(&(plparams->vpw->ap));
+
+	pthread_mutex_destroy(&(plparams->statusmutex));
+	pthread_cond_destroy(&(plparams->statuscond));
+}
+
+void pl_setplaying(playlistparams *plparams)
+{
+	pthread_mutex_lock(&(plparams->statusmutex));
+	plparams->status=PLPLAYING;
+	pthread_mutex_unlock(&(plparams->statusmutex));
+}
+
+void pl_signalstop(playlistparams *plparams)
+{
+	pthread_mutex_lock(&(plparams->statusmutex));
+	plparams->status = PLIDLE;
+	pthread_cond_signal(&(plparams->statuscond)); // Should wake up *one* thread
+	pthread_mutex_unlock(&(plparams->statusmutex));
+}
+
+void pl_idlewait(playlistparams *plparams)
+{
+	pthread_mutex_lock(&(plparams->statusmutex));
+	while (plparams->status!=PLIDLE)
+		pthread_cond_wait(&(plparams->statuscond), &(plparams->statusmutex));
+	pthread_mutex_unlock(&(plparams->statusmutex));
 }
 
 gboolean focus_iter_idle(gpointer data)
@@ -305,7 +341,8 @@ int create_thread0_videoplayer(vpwidgets *vpw, int vqMaxLength, int thread_count
 	if ((err=open_now_playing(v))<0)
 	{
 		printf("open_now_playing() error %d\n", err);
-		return(err);
+		close_videoplayer(v);
+		return(v->stoprequested);
 	}
 
 	err = pthread_create(&(v->tid[0]), NULL, &thread0_videoplayer, (void *)v);
@@ -334,16 +371,20 @@ gpointer playlist_thread(gpointer args)
 
 	playlistparams *plp = (playlistparams*)args;
 	vpwidgets *vpw = plp->vpw;
+	int sr;
 
+	pl_setplaying(plp);
 	while(1)
 	{
-		if (create_thread0_videoplayer(plp->vpw, plp->vqMaxLength, plp->thread_count))
+		if ((sr=create_thread0_videoplayer(plp->vpw, plp->vqMaxLength, plp->thread_count)))
 			break;
 		if (!play_next(plp->vpw))
 			break;
 	}
+	pl_signalstop(plp);
 
-	button2_clicked(vpw->button2, (gpointer)plp);
+	if (!sr)
+		button2_clicked(vpw->button2, (gpointer)plp);
 
 //printf("exiting playlist_thread\n");
 	plp->vpw->retval0 = 0;
@@ -531,6 +572,8 @@ void button2_clicked(GtkWidget *button, gpointer data)
 
 //g_print("Button 2 clicked\n");
 	request_stop_frame_reader(vp);
+	
+	pl_idlewait(plp);
 
 	gtk_widget_set_sensitive(vpw->button2, FALSE);
 	gtk_widget_set_sensitive(vpw->button8, FALSE);

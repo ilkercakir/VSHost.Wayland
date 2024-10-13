@@ -173,6 +173,7 @@ void vq_drain(videoplayerqueue *vpq)
 
 void vq_destroy(videoplayerqueue *vpq)
 {
+	vpq->playerstatus = IDLE;
 	pthread_mutex_destroy(&(vpq->vqmutex));
 	pthread_cond_destroy(&(vpq->vqlowcond));
 	pthread_cond_destroy(&(vpq->vqhighcond));

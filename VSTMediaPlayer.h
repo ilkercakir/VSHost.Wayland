@@ -30,6 +30,12 @@ typedef enum
 	string
 }target_info;
 
+typedef enum
+{
+	PLIDLE = 0,
+	PLPLAYING
+}plstatus;
+
 typedef struct
 {
 GtkWidget *vpwindow;
@@ -86,6 +92,9 @@ pthread_attr_t attr;
 snd_pcm_format_t format;
 unsigned int rate, channels;
 unsigned int frames, cqbufferframes;
+plstatus status;
+pthread_mutex_t statusmutex;
+pthread_cond_t statuscond;
 }playlistparams;
 
 void init_playlistparams(playlistparams *plparams, vpwidgets *vpw, int vqMaxLength, snd_pcm_format_t format, unsigned int rate, unsigned int channels, unsigned int frames, unsigned int cqbufferframes, int thread_count);
