@@ -9,7 +9,6 @@
 #include <sqlite3.h>
 
 #include "VStudio.h"
-#include "VSUtil.h"
 
 void virtualstudio_set_dbpath(virtualstudio *vs, char *dbpath);
 void virtualstudio_purge(virtualstudio *vs);

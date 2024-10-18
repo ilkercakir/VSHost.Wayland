@@ -9,6 +9,7 @@
 #include <sqlite3.h>
 
 #include "VSJam.h"
+#include "VSMessage.h"
 
 typedef struct
 {
@@ -37,9 +38,9 @@ typedef struct
 	audiojam aj;
 	audioout ao;
 	int effid;
+	VSMessage vsm;
 }virtualstudio;
 
 void virtualstudio_init(virtualstudio *vs, int maxchains, int maxeffects, snd_pcm_format_t format, unsigned int rate, unsigned int channels, unsigned int frames, GtkWidget *window, char *dbpath);
 void virtualstudio_close(virtualstudio *vs, int destroy);
-
 #endif

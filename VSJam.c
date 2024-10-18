@@ -43,7 +43,7 @@ gboolean audioout_led(gpointer data)
 	return FALSE;
 }
 
-static gpointer audioout_thread0(gpointer args)
+gpointer audioout_thread0(gpointer args)
 {
 	int ctype = PTHREAD_CANCEL_ASYNCHRONOUS;
 	int ctype_old;
@@ -128,7 +128,7 @@ void audioout_create_thread(audioout *ao, char *device, unsigned int frames)
 	pthread_mutex_destroy(&(ao->mxmutex));
 }
 
-static gpointer audioout_thread_pulseaudio0(gpointer args)
+gpointer audioout_thread_pulseaudio0(gpointer args)
 {
 	int ctype = PTHREAD_CANCEL_ASYNCHRONOUS;
 	int ctype_old;
@@ -252,7 +252,7 @@ odevicetype get_odevicetype(char *device)
 	}
 }
 
-static void outputdevicescombo_changed(GtkWidget *combo, gpointer data)
+void outputdevicescombo_changed(GtkWidget *combo, gpointer data)
 {
 	audioout *ao = (audioout *)data;
 	audiojam *aj = ao->aj;
@@ -315,23 +315,39 @@ static void outputdevicescombo_changed(GtkWidget *combo, gpointer data)
 	}
 }
 
-static void frames_changed(GtkWidget *widget, gpointer data)
+void frames_changed(GtkWidget *widget, gpointer data)
 {
-	int frames = (int)gtk_spin_button_get_value(GTK_SPIN_BUTTON(widget));
+
 	audioout *ao = (audioout *)data;
 	audiojam *aj = ao->aj;
+	odevicetype odevtype;
+
+	int frames = (int)gtk_spin_button_get_value(GTK_SPIN_BUTTON(widget));
 
 	audiojam_close(aj);
 	gtk_widget_destroy(aj->toolbarhbox);
 	gtk_widget_destroy(aj->frame);
-	audioout_terminate_thread(ao);
+
+	//audioout_terminate_thread(ao);
+	odevtype = get_odevicetype(ao->tp.device);
+
+	if (odevtype==ohardwaredevice)
+		audioout_terminate_thread(ao);
+	else if (odevtype==opulseaudio)
+		audioout_terminate_thread_pulseaudio(ao);
 
 	ao->frames = frames;
 
-	audioout_create_thread(ao, ao->tp.device, ao->frames);
+	//audioout_create_thread(ao, ao->tp.device, ao->frames);
+	if (odevtype==ohardwaredevice)
+		audioout_create_thread(ao, ao->tp.device, ao->frames);
+	else if (odevtype==opulseaudio)
+		audioout_create_thread_pulseaudio(ao, ao->tp.device, ao->frames);
+
 	audiojam_init(aj, aj->maxchains, aj->maxeffects, aj->format, aj->rate, aj->channels, ao->frames, aj->container, aj->dbpath, &(ao->mx), aj->window);
 	gtk_widget_show_all(aj->toolbarhbox);
 	gtk_widget_show_all(aj->frame);
+
 }
 
 gboolean setrecordingswitchstate(gpointer data)
@@ -456,6 +472,7 @@ void audioout_init(audioout *ao, snd_pcm_format_t format, unsigned int rate, uns
 
 	ao->window = window;
 	ao->container = container;
+	ao->vsm = NULL;
 
 	init_encoder(&(ao->aen));
 
@@ -555,6 +572,11 @@ void audioout_init(audioout *ao, snd_pcm_format_t format, unsigned int rate, uns
 	g_free(device);
 }
 
+float audioout_getdelay(audioout *ao)
+{
+		return (((float)ao->frames * 1000) / (float)ao->rate);
+}
+
 void audioout_close(audioout *ao)
 {
 	odevicetype odevtype;
@@ -566,6 +588,11 @@ void audioout_close(audioout *ao)
 		audioout_terminate_thread_pulseaudio(ao);
 
 	close_encoder(&(ao->aen));
+}
+
+void audioout_messages(audioout *ao, VSMessage *m)
+{
+	ao->vsm = m;
 }
 
 // Audio Effect Chains
@@ -817,6 +844,11 @@ void audiojam_addchain(audiojam *aj, char *name)
 	}
 	else
 		printf("audio chains full, max %d\n", aj->maxchains);
+}
+
+float audiojam_getdelay(audiojam *aj)
+{
+	return (((float)aj->frames * 1000) / (float)aj->rate);
 }
 
 void audiojam_close(audiojam *aj)

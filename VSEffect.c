@@ -521,7 +521,6 @@ gboolean init_videoplayerwidgets_idle(gpointer data)
 {
 	playlistparams *plp = (playlistparams *)data;
 
-//printf("");
 	init_videoplayerwidgets(plp, 640, 360);
 
 	return FALSE;
@@ -531,7 +530,6 @@ gboolean close_videoplayerwidgets_idle(gpointer data)
 {
 	playlistparams *plp = (playlistparams *)data;
 
-//printf("");
 	close_videoplayerwidgets(plp);
 
 	return FALSE;
@@ -628,7 +626,7 @@ static gpointer audioeffectchain_thread_ffmpeg0(gpointer args)
 	{
 		// Process input frames here
 		audioeffectchain_process(aec, ap->buffer, ap->buffersize);
-//printf("%s %d\n", aec->device, ap->buffersize);
+//printf("%s %d\n", aec->name, ap->buffersize);
 		writetojack(ap->buffer, ap->buffersize, &(tp->jack));
 	}
 

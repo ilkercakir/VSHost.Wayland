@@ -15,6 +15,7 @@
 
 #include "AudioEncoder.h"
 #include "PulseAudio.h"
+#include "VSMessage.h"
 
 typedef struct
 {
@@ -103,6 +104,7 @@ struct auout
 
 	char *recordedfilename;
 	audioencoder aen;
+	VSMessage *vsm;
 };
 
 typedef enum
@@ -114,10 +116,13 @@ typedef enum
 }odevicetype;
 
 void audioout_init(audioout *ao, snd_pcm_format_t format, unsigned int rate, unsigned int channels, unsigned int frames, int mixerChannels, audiojam *aj, GtkWidget *container, GtkWidget *window);
+float audioout_getdelay(audioout *ao);
 void audioout_close(audioout *ao);
+void audioout_messages(audioout *ao, VSMessage *m);
 
 void audiojam_init(audiojam *aj, int maxchains, int maxeffects, snd_pcm_format_t format, unsigned int rate, unsigned int channels, unsigned int frames, GtkWidget *container, char *dbpath, audiomixer *mx, GtkWidget *window);
 void audiojam_addchain(audiojam *aj, char *name);
+float audiojam_getdelay(audiojam *aj);
 void audiojam_close(audiojam *aj);
 void audiojam_stopthreads(audiojam *aj);
 void audiojam_startthreads(audiojam *aj);
