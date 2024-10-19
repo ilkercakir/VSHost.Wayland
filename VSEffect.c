@@ -44,7 +44,7 @@ void widget_value_changed(GtkWidget *widget, gpointer data)
 		audioeffect_setparameter(ae, p->index, value);
 }
 
-static void widget_toggled(GtkWidget *togglebutton, gpointer data)
+void widget_toggled(GtkWidget *togglebutton, gpointer data)
 {
 	audioeffectparameter *p = (audioeffectparameter*)data;
 	audioeffect *ae = (audioeffect*)(p->parent);
@@ -535,7 +535,7 @@ gboolean close_videoplayerwidgets_idle(gpointer data)
 	return FALSE;
 }
 
-static gpointer audioeffectchain_thread0(gpointer args)
+gpointer audioeffectchain_thread0(gpointer args)
 {
 	int ctype = PTHREAD_CANCEL_ASYNCHRONOUS;
 	int ctype_old;
@@ -604,7 +604,7 @@ void audioeffectchain_create_thread(audioeffectchain *aec, char *device, unsigne
 	}
 }
 
-static gpointer audioeffectchain_thread_ffmpeg0(gpointer args)
+gpointer audioeffectchain_thread_ffmpeg0(gpointer args)
 {
 	int ctype = PTHREAD_CANCEL_ASYNCHRONOUS;
 	int ctype_old;
@@ -615,8 +615,12 @@ static gpointer audioeffectchain_thread_ffmpeg0(gpointer args)
 	playlistparams *plp = &(tp->plparams);
 	vpwidgets *vpw = &(tp->vpw);
 
+sleep(1); // idle functions called as late as here ???
+
 	init_playlistparams(plp, vpw, 20, aec->format, aec->rate, aec->channels, aec->frames, 20*1024, 4); // video, frames, cqframes, thread_count
-	gdk_threads_add_idle(init_videoplayerwidgets_idle, plp);
+
+	//gdk_threads_add_idle(init_videoplayerwidgets_idle, plp);
+	init_videoplayerwidgets(plp, 640, 360);
 
 	connect_audiojack(tp->channelbuffers, &(tp->jack), aec->mx);
 
@@ -633,6 +637,8 @@ static gpointer audioeffectchain_thread_ffmpeg0(gpointer args)
 	close_audiojack(&(tp->jack));
 
 	gdk_threads_add_idle(close_videoplayerwidgets_idle, plp);
+	//close_videoplayerwidgets(plp);
+
 	close_playlistparams(plp);
 
 //printf("exiting %s\n", aec->name);
@@ -664,7 +670,7 @@ void audioeffectchain_create_thread_ffmpeg(audioeffectchain *aec, char *device, 
 	}
 }
 
-static gpointer audioeffectchain_thread_pulse0(gpointer args)
+gpointer audioeffectchain_thread_pulse0(gpointer args)
 {
 	int ctype = PTHREAD_CANCEL_ASYNCHRONOUS;
 	int ctype_old;
@@ -774,16 +780,16 @@ void audioeffectchain_terminate_thread_pulse(audioeffectchain *aec)
 }
 
 // effect chain utilities
-static gboolean u_delete_event(GtkWidget *widget, GdkEvent *event, gpointer data)
+gboolean u_delete_event(GtkWidget *widget, GdkEvent *event, gpointer data)
 {
 	return FALSE; // return FALSE to emit destroy signal
 }
 
-static void u_destroy(GtkWidget *widget, gpointer data)
+void u_destroy(GtkWidget *widget, gpointer data)
 {
 }
 
-static void u_realize_cb(GtkWidget *widget, gpointer data)
+void u_realize_cb(GtkWidget *widget, gpointer data)
 {
 }
 
@@ -809,7 +815,7 @@ int u_select_callback(void *data, int argc, char **argv, char **azColName)
 	return 0;
 }
 
-static GtkTreeModel* u_create_and_fill_model(audioeffectchain *aec)
+GtkTreeModel* u_create_and_fill_model(audioeffectchain *aec)
 {
 	sqlite3 *db;
 	char *err_msg = NULL;
@@ -1319,7 +1325,7 @@ void audioeffectchain_delete(audioeffectchain *aec)
 
 // effect chain
 
-static void inputdevicescombo_changed(GtkWidget *combo, gpointer data)
+void inputdevicescombo_changed(GtkWidget *combo, gpointer data)
 {
 	audioeffectchain *aec = (audioeffectchain *)data;
 	gchar *device;

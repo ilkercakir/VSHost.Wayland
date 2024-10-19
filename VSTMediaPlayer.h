@@ -36,6 +36,12 @@ typedef enum
 	PLPLAYING
 }plstatus;
 
+typedef enum
+{
+	VPWREADY = 0,
+	VPWBUSY
+}vpwstatus;
+
 typedef struct
 {
 GtkWidget *vpwindow;
@@ -95,6 +101,9 @@ unsigned int frames, cqbufferframes;
 plstatus status;
 pthread_mutex_t statusmutex;
 pthread_cond_t statuscond;
+vpwstatus vpwstat;
+pthread_mutex_t threadmutex;
+pthread_cond_t threadcond;
 }playlistparams;
 
 void init_playlistparams(playlistparams *plparams, vpwidgets *vpw, int vqMaxLength, snd_pcm_format_t format, unsigned int rate, unsigned int channels, unsigned int frames, unsigned int cqbufferframes, int thread_count);
@@ -105,4 +114,6 @@ void close_videoplayerwidgets(playlistparams *plp);
 void press_vp_stop_button(playlistparams *plp);
 void press_vp_resume_button(playlistparams *plp);
 char* strlastpart(char *src, char *search, int lowerupper);
+void set_videoplayerwidgets(playlistparams *plp);
+void wait_videoplayerwidgets(playlistparams *plp);
 #endif

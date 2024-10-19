@@ -124,7 +124,4 @@ void audiojam_init(audiojam *aj, int maxchains, int maxeffects, snd_pcm_format_t
 void audiojam_addchain(audiojam *aj, char *name);
 float audiojam_getdelay(audiojam *aj);
 void audiojam_close(audiojam *aj);
-void audiojam_stopthreads(audiojam *aj);
-void audiojam_startthreads(audiojam *aj);
-
 #endif

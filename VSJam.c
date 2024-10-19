@@ -317,7 +317,6 @@ void outputdevicescombo_changed(GtkWidget *combo, gpointer data)
 
 void frames_changed(GtkWidget *widget, gpointer data)
 {
-
 	audioout *ao = (audioout *)data;
 	audiojam *aj = ao->aj;
 	odevicetype odevtype;
@@ -347,7 +346,6 @@ void frames_changed(GtkWidget *widget, gpointer data)
 	audiojam_init(aj, aj->maxchains, aj->maxeffects, aj->format, aj->rate, aj->channels, ao->frames, aj->container, aj->dbpath, &(ao->mx), aj->window);
 	gtk_widget_show_all(aj->toolbarhbox);
 	gtk_widget_show_all(aj->frame);
-
 }
 
 gboolean setrecordingswitchstate(gpointer data)

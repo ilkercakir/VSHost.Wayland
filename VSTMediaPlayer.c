@@ -109,22 +109,32 @@ void init_playlistparams(playlistparams *plparams, vpwidgets *vpw, int vqMaxLeng
 	plparams->frames = frames;
 	plparams->cqbufferframes = cqbufferframes;
 	plparams->thread_count = thread_count;
-
+	
 	audioCQ_init(&(plparams->vpw->ap), plparams->format, plparams->rate, plparams->channels, plparams->frames, plparams->cqbufferframes);
 
 	plparams->status = PLIDLE;
 
 	if((ret=pthread_mutex_init(&(plparams->statusmutex), NULL))!=0 )
-		printf("Playlist mutex init failed, %d\n", ret);
+		printf("playlist mutex init failed, %d\n", ret);
 
 	if((ret=pthread_cond_init(&(plparams->statuscond), NULL))!=0 )
-		printf("Playlist cond init failed, %d\n", ret);
+		printf("playlist cond init failed, %d\n", ret);
+
+	plparams->vpwstat = VPWREADY;
+
+	if((ret=pthread_mutex_init(&(plparams->threadmutex), NULL))!=0 )
+		printf("thread mutex init failed, %d\n", ret);
+
+	if((ret=pthread_cond_init(&(plparams->threadcond), NULL))!=0 )
+		printf("thread cond init failed, %d\n", ret);
 }
 
 void close_playlistparams(playlistparams *plparams)
 {
 	audioCQ_close(&(plparams->vpw->ap));
 
+	pthread_mutex_destroy(&(plparams->threadmutex));
+	pthread_cond_destroy(&(plparams->threadcond));
 	pthread_mutex_destroy(&(plparams->statusmutex));
 	pthread_cond_destroy(&(plparams->statuscond));
 }
@@ -1228,6 +1238,31 @@ void init_target_list(vpwidgets *vpw)
 
 	for(i=0;i<G_N_ELEMENTS(target_entries);i++)
 		vpw->target_entries[i] = target_entries[i];
+}
+
+void set_videoplayerwidgets(playlistparams *plp)
+{
+	pthread_mutex_lock(&(plp->threadmutex));
+	plp->vpwstat = VPWBUSY;
+	pthread_mutex_unlock(&(plp->threadmutex));
+}
+
+void signal_videoplayerwidgets(playlistparams *plp)
+{
+	pthread_mutex_lock(&(plp->threadmutex));
+	plp->vpwstat = VPWREADY;
+	pthread_cond_signal(&(plp->threadcond));
+	pthread_mutex_unlock(&(plp->threadmutex));
+}
+
+void wait_videoplayerwidgets(playlistparams *plp)
+{
+	pthread_mutex_lock(&(plp->threadmutex));
+	while (plp->vpwstat==VPWBUSY)
+	{
+		pthread_cond_wait(&(plp->threadcond), &(plp->threadmutex));
+	}
+	pthread_mutex_unlock(&(plp->threadmutex));
 }
 
 void init_videoplayerwidgets(playlistparams *plp, int playWidth, int playHeight)
