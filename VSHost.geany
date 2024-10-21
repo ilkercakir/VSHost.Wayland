@@ -23,14 +23,18 @@ long_line_behaviour=1
 long_line_column=72
 
 [files]
-current_page=5
-FILE_NAME_0=42447;C;0;EUTF-8;1;1;0;%2Fhome%2Fpi%2FDocuments%2FC%2FVSHost.Wayland%2FVSTMediaPlayer.c;0;4
-FILE_NAME_1=1493;C++;0;EUTF-8;1;1;0;%2Fhome%2Fpi%2FDocuments%2FC%2FVSHost.Wayland%2FVSTMediaPlayer.h;0;4
-FILE_NAME_2=18148;C;0;EUTF-8;1;1;0;%2Fhome%2Fpi%2FDocuments%2FC%2FVSHost.Wayland%2FVSTVideoPlayer.c;0;4
-FILE_NAME_3=17775;C;0;EUTF-8;1;1;0;%2Fhome%2Fpi%2FDocuments%2FC%2FVSHost.Wayland%2FVSJam.c;0;4
-FILE_NAME_4=912;C++;0;EUTF-8;1;1;0;%2Fhome%2Fpi%2FDocuments%2FC%2FVSHost.Wayland%2FVSJam.h;0;4
-FILE_NAME_5=18495;C;0;EUTF-8;1;1;0;%2Fhome%2Fpi%2FDocuments%2FC%2FVSHost.Wayland%2FVSEffect.c;0;4
-FILE_NAME_6=1519;C++;0;EUTF-8;1;1;0;%2Fhome%2Fpi%2FDocuments%2FC%2FVSHost.Wayland%2FVSEffect.h;0;4
+current_page=4
+FILE_NAME_0=33489;C;0;EUTF-8;1;1;0;%2Fhome%2Fpi%2FDocuments%2FC%2FVSHost.Wayland%2FVSTMediaPlayer.c;0;4
+FILE_NAME_1=574;C++;0;EUTF-8;1;1;0;%2Fhome%2Fpi%2FDocuments%2FC%2FVSHost.Wayland%2FVSTMediaPlayer.h;0;4
+FILE_NAME_2=25000;C;0;EUTF-8;1;1;0;%2Fhome%2Fpi%2FDocuments%2FC%2FVSHost.Wayland%2FVSJam.c;0;4
+FILE_NAME_3=1964;C++;0;EUTF-8;1;1;0;%2Fhome%2Fpi%2FDocuments%2FC%2FVSHost.Wayland%2FVSJam.h;0;4
+FILE_NAME_4=16350;C;0;EUTF-8;1;1;0;%2Fhome%2Fpi%2FDocuments%2FC%2FVSHost.Wayland%2FVSEffect.c;0;4
+FILE_NAME_5=3136;C++;0;EUTF-8;1;1;0;%2Fhome%2Fpi%2FDocuments%2FC%2FVSHost.Wayland%2FVSEffect.h;0;4
+FILE_NAME_6=3297;C;0;EUTF-8;1;1;0;%2Fhome%2Fpi%2FDocuments%2FC%2FVSHost.Wayland%2FVStudio.c;0;4
+FILE_NAME_7=531;C++;0;EUTF-8;1;1;0;%2Fhome%2Fpi%2FDocuments%2FC%2FVSHost.Wayland%2FVStudio.h;0;4
+FILE_NAME_8=1761;C;0;EUTF-8;1;1;0;%2Fhome%2Fpi%2FDocuments%2FC%2FVSHost.Wayland%2FVSHost.c;0;4
+FILE_NAME_9=1082;C;0;EUTF-8;1;1;0;%2Fhome%2Fpi%2FDocuments%2FC%2FVSHost.Wayland%2FVSMessage.c;0;4
+FILE_NAME_10=103;C++;0;EUTF-8;1;1;0;%2Fhome%2Fpi%2FDocuments%2FC%2FVSHost.Wayland%2FVSMessage.h;0;4
 
 [VTE]
 last_dir=/home/pi

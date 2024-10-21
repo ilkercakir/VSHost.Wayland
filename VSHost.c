@@ -37,8 +37,32 @@ static gboolean delete_event(GtkWidget *widget, GdkEvent *event, gpointer data)
 	return FALSE; // return FALSE to emit destroy signal
 }
 
+void audiojam_finalize(audiojam *aj)
+{
+	int c;
+
+	for(c=0;c<aj->maxchains;c++)
+	{
+		{
+			playlistparams *plparams = &(aj->aec[c].tp.plparams);
+			pthread_mutex_destroy(&(plparams->threadmutex));
+			pthread_cond_destroy(&(plparams->threadcond));
+		}
+	}
+	free(aj->aec);
+}
+
 static void destroy(GtkWidget *widget, gpointer data)
 {
+	virtualstudio_close(&vs, FALSE);
+
+// Flush callbacks
+	while(g_main_context_pending(NULL))
+		g_main_context_iteration(NULL, FALSE);
+
+	audiojam *aj = &(vs.aj);
+	audiojam_finalize(aj);
+
 	gtk_main_quit();
 }
 
@@ -103,8 +127,6 @@ int main(int argc, char **argv)
 
 	gtk_widget_show_all(window);
 	gtk_main();
-
-	virtualstudio_close(&vs, FALSE);
 
 	return 0;
 }

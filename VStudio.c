@@ -30,20 +30,6 @@
 
 // Virtual studio runtime
 
-/*
-static void push_message(GtkWidget *widget, gint cid, char *msg)
-{
-  gchar *buff = g_strdup_printf("%s", msg);
-  gtk_statusbar_push(GTK_STATUSBAR(widget), cid, buff);
-  g_free(buff);
-}
-
-static void pop_message(GtkWidget *widget, gint cid)
-{
-  gtk_statusbar_pop(GTK_STATUSBAR(widget), cid);
-}
-*/
-
 void virtualstudio_init(virtualstudio *vs, int maxchains, int maxeffects, snd_pcm_format_t format, unsigned int rate, unsigned int channels, unsigned int frames, GtkWidget *window, char *dbpath)
 {
 	vs->maxchains = maxchains;
@@ -82,7 +68,7 @@ void virtualstudio_init(virtualstudio *vs, int maxchains, int maxeffects, snd_pc
 	gtk_box_pack_start(GTK_BOX(vs->hjambox), vs->vjambox, TRUE, TRUE, 0);
 
 // Audio Input Jam
-	audiojam_init(&(vs->aj), vs->maxchains, vs->maxeffects, vs->format, vs->rate, vs->channels, vs->frames, vs->vjambox, vs->dbpath, &(vs->ao.mx), vs->window);
+	audiojam_init(&(vs->aj), vs->maxchains, vs->maxeffects, vs->format, vs->rate, vs->channels, vs->frames, vs->vjambox, vs->dbpath, &(vs->ao.mx), vs->window, TRUE);
 
 // horizontal box
 	vs->statusbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
@@ -90,17 +76,15 @@ void virtualstudio_init(virtualstudio *vs, int maxchains, int maxeffects, snd_pc
 	//gtk_box_pack_start(GTK_BOX(vs->vbox), vs->statusbox, TRUE, TRUE, 0);
 
 // Statusbar
-	vs->context_id = 0;
 	vs->statusbar = gtk_statusbar_new();
 	gtk_container_add(GTK_CONTAINER(vs->statusbox), vs->statusbar);
 	//gtk_box_pack_start(GTK_BOX(vs->statusbox), vs->statusbar, TRUE, TRUE, 0);
 
 // Statusbar Messages
-	VStudio_init_messages(&(vs->vsm), vs->context_id, vs->statusbar, "");
+	VStudio_init_messages(&(vs->vsm), vs->statusbar, "");
 
 	char s[100];
 	sprintf(s, "Output delay: %5.2f ms, Input delay: %5.2f ms", audioout_getdelay(&(vs->ao)), audiojam_getdelay(&(vs->aj)));
-	//push_message(vs->statusbar, vs->context_id, s);
 	VStudio_message(&(vs->vsm), s);
 }
 
@@ -108,7 +92,7 @@ void virtualstudio_close(virtualstudio *vs, int destroy)
 {
 	VStudio_close_messages(&(vs->vsm));
 
-	audiojam_close(&(vs->aj));
+	audiojam_close(&(vs->aj), FALSE);
 	audioout_close(&(vs->ao));
 	if (destroy)
 		gtk_widget_destroy(vs->vbox);

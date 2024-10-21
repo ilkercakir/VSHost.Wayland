@@ -323,11 +323,10 @@ void frames_changed(GtkWidget *widget, gpointer data)
 
 	int frames = (int)gtk_spin_button_get_value(GTK_SPIN_BUTTON(widget));
 
-	audiojam_close(aj);
+	audiojam_close(aj, FALSE);
 	gtk_widget_destroy(aj->toolbarhbox);
 	gtk_widget_destroy(aj->frame);
 
-	//audioout_terminate_thread(ao);
 	odevtype = get_odevicetype(ao->tp.device);
 
 	if (odevtype==ohardwaredevice)
@@ -337,15 +336,18 @@ void frames_changed(GtkWidget *widget, gpointer data)
 
 	ao->frames = frames;
 
-	//audioout_create_thread(ao, ao->tp.device, ao->frames);
 	if (odevtype==ohardwaredevice)
 		audioout_create_thread(ao, ao->tp.device, ao->frames);
 	else if (odevtype==opulseaudio)
 		audioout_create_thread_pulseaudio(ao, ao->tp.device, ao->frames);
 
-	audiojam_init(aj, aj->maxchains, aj->maxeffects, aj->format, aj->rate, aj->channels, ao->frames, aj->container, aj->dbpath, &(ao->mx), aj->window);
+	audiojam_init(aj, aj->maxchains, aj->maxeffects, aj->format, aj->rate, aj->channels, ao->frames, aj->container, aj->dbpath, &(ao->mx), aj->window, FALSE);
 	gtk_widget_show_all(aj->toolbarhbox);
 	gtk_widget_show_all(aj->frame);
+
+	char s[100];
+	sprintf(s, "Output delay: %5.2f ms, Input delay: %5.2f ms", audioout_getdelay(ao), audiojam_getdelay(aj));
+	VStudio_message(ao->vsm, s);
 }
 
 gboolean setrecordingswitchstate(gpointer data)
@@ -731,7 +733,7 @@ void audiojam_loadfromdb(audiojam *aj)
 	sqlite3_close(db);
 }
 
-void audiojam_init(audiojam *aj, int maxchains, int maxeffects, snd_pcm_format_t format, unsigned int rate, unsigned int channels, unsigned int frames, GtkWidget *container, char *dbpath, audiomixer *mx, GtkWidget *window)
+void audiojam_init(audiojam *aj, int maxchains, int maxeffects, snd_pcm_format_t format, unsigned int rate, unsigned int channels, unsigned int frames, GtkWidget *container, char *dbpath, audiomixer *mx, GtkWidget *window, int tmutex)
 {
 	int i, j, ret;
 
@@ -790,7 +792,8 @@ void audiojam_init(audiojam *aj, int maxchains, int maxeffects, snd_pcm_format_t
 	aj->hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
 	gtk_container_add(GTK_CONTAINER(aj->frame), aj->hbox);
 
-	aj->aec = malloc(sizeof(audioeffectchain) * maxchains);
+	if (tmutex)
+		aj->aec = malloc(sizeof(audioeffectchain) * maxchains);
 	for(i=0;i<aj->maxchains;i++)
 	{
 		aj->aec[i].id = 0;
@@ -804,7 +807,17 @@ void audiojam_init(audiojam *aj, int maxchains, int maxeffects, snd_pcm_format_t
 		aj->aec[i].tp.tid = 0;
 		aj->aec[i].channelbuffers = 2;
 		aj->aec[i].tp.status = TH_STOPPED;
+		if (tmutex)
+		{
+			playlistparams *plparams = &(aj->aec[i].tp.plparams);
+			plparams->vpwstat = VPWREADY;
 
+			if((ret=pthread_mutex_init(&(plparams->threadmutex), NULL))!=0 )
+				printf("thread mutex init failed, %d\n", ret);
+
+			if((ret=pthread_cond_init(&(plparams->threadcond), NULL))!=0 )
+				printf("thread cond init failed, %d\n", ret);
+		}
 		aj->aec[i].effects = maxeffects;
 		aj->aec[i].ae = malloc(sizeof(audioeffect) * aj->aec[i].effects);
 		for(j=0;j<aj->aec[i].effects;j++)
@@ -849,7 +862,7 @@ float audiojam_getdelay(audiojam *aj)
 	return (((float)aj->frames * 1000) / (float)aj->rate);
 }
 
-void audiojam_close(audiojam *aj)
+void audiojam_close(audiojam *aj, int tmutex)
 {
 	int i, c;
 
@@ -861,9 +874,16 @@ void audiojam_close(audiojam *aj)
 			audioeffectchain_unloadeffect(&(aj->aec[c]), i);
 			pthread_mutex_destroy(&(aj->aec[c].ae[i].effectmutex));
 		}
+		if (tmutex)
+		{
+//			playlistparams *plparams = &(aj->aec[c].tp.plparams);
+//			pthread_mutex_destroy(&(plparams->threadmutex));
+//			pthread_cond_destroy(&(plparams->threadcond));
+		}
 		free(aj->aec[c].ae);
 		free(aj->aec[c].aeorder);
-		pthread_mutex_destroy(&(aj->aec[c].rackmutex));
+		pthread_mutex_destroy(&(aj->aec[c].rackmutex));		
 	}
-	free(aj->aec);
+//	if (tmutex)
+//		free(aj->aec);
 }

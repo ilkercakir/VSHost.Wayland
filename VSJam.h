@@ -120,8 +120,8 @@ float audioout_getdelay(audioout *ao);
 void audioout_close(audioout *ao);
 void audioout_messages(audioout *ao, VSMessage *m);
 
-void audiojam_init(audiojam *aj, int maxchains, int maxeffects, snd_pcm_format_t format, unsigned int rate, unsigned int channels, unsigned int frames, GtkWidget *container, char *dbpath, audiomixer *mx, GtkWidget *window);
+void audiojam_init(audiojam *aj, int maxchains, int maxeffects, snd_pcm_format_t format, unsigned int rate, unsigned int channels, unsigned int frames, GtkWidget *container, char *dbpath, audiomixer *mx, GtkWidget *window, int tmutex);
 void audiojam_addchain(audiojam *aj, char *name);
 float audiojam_getdelay(audiojam *aj);
-void audiojam_close(audiojam *aj);
+void audiojam_close(audiojam *aj, int tmutex);
 #endif

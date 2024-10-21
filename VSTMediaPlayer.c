@@ -119,22 +119,12 @@ void init_playlistparams(playlistparams *plparams, vpwidgets *vpw, int vqMaxLeng
 
 	if((ret=pthread_cond_init(&(plparams->statuscond), NULL))!=0 )
 		printf("playlist cond init failed, %d\n", ret);
-
-	plparams->vpwstat = VPWREADY;
-
-	if((ret=pthread_mutex_init(&(plparams->threadmutex), NULL))!=0 )
-		printf("thread mutex init failed, %d\n", ret);
-
-	if((ret=pthread_cond_init(&(plparams->threadcond), NULL))!=0 )
-		printf("thread cond init failed, %d\n", ret);
 }
 
 void close_playlistparams(playlistparams *plparams)
 {
 	audioCQ_close(&(plparams->vpw->ap));
 
-	pthread_mutex_destroy(&(plparams->threadmutex));
-	pthread_cond_destroy(&(plparams->threadcond));
 	pthread_mutex_destroy(&(plparams->statusmutex));
 	pthread_cond_destroy(&(plparams->statuscond));
 }

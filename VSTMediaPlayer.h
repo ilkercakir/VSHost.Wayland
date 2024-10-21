@@ -116,4 +116,5 @@ void press_vp_resume_button(playlistparams *plp);
 char* strlastpart(char *src, char *search, int lowerupper);
 void set_videoplayerwidgets(playlistparams *plp);
 void wait_videoplayerwidgets(playlistparams *plp);
+void signal_videoplayerwidgets(playlistparams *plp);
 #endif

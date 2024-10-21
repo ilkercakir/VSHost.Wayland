@@ -31,15 +31,15 @@
 
 // Virtual studio statusbar messages
 
-void VStudio_init_messages(VSMessage *m, int context_id, GtkWidget *w, char *s)
+void VStudio_init_messages(VSMessage *m, GtkWidget *w, char *s)
 {
-	m->context_id = context_id;
+	m->context_id = gtk_statusbar_get_context_id(GTK_STATUSBAR(w), "VSHost");
 	m->statusbar = w;
-	strcpy(m->message, s);
 
-	gchar *buff = g_strdup_printf("%s", m->message);
-	gtk_statusbar_push(GTK_STATUSBAR(m->statusbar), m->context_id, buff);
-	g_free(buff);
+	VStudio_message(m, s);
+//	gchar *buff = g_strdup_printf("%s", m->message);
+//	gtk_statusbar_push(GTK_STATUSBAR(m->statusbar), m->context_id, buff);
+//	g_free(buff);
 }
 
 gboolean VStudio_message2statusbar(gpointer data)
@@ -47,7 +47,6 @@ gboolean VStudio_message2statusbar(gpointer data)
 	VSMessage *m = (VSMessage *)data;
 
 	gtk_statusbar_pop(GTK_STATUSBAR(m->statusbar), m->context_id);
-
 	gchar *buff = g_strdup_printf("%s", m->message);
 	gtk_statusbar_push(GTK_STATUSBAR(m->statusbar), m->context_id, buff);
 	g_free(buff);

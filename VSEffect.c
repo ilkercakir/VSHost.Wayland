@@ -526,11 +526,14 @@ gboolean init_videoplayerwidgets_idle(gpointer data)
 	return FALSE;
 }
 
-gboolean close_videoplayerwidgets_idle(gpointer data)
+gboolean close_videoplayerwidgetsplp_idle(gpointer data)
 {
 	playlistparams *plp = (playlistparams *)data;
 
 	close_videoplayerwidgets(plp);
+	close_playlistparams(plp);
+
+	signal_videoplayerwidgets(plp);
 
 	return FALSE;
 }
@@ -615,16 +618,16 @@ gpointer audioeffectchain_thread_ffmpeg0(gpointer args)
 	playlistparams *plp = &(tp->plparams);
 	vpwidgets *vpw = &(tp->vpw);
 
-sleep(1); // idle functions called as late as here ???
+	wait_videoplayerwidgets(plp);
 
 	init_playlistparams(plp, vpw, 20, aec->format, aec->rate, aec->channels, aec->frames, 20*1024, 4); // video, frames, cqframes, thread_count
 
-	//gdk_threads_add_idle(init_videoplayerwidgets_idle, plp);
-	init_videoplayerwidgets(plp, 640, 360);
+	gdk_threads_add_idle(init_videoplayerwidgets_idle, plp);
 
 	connect_audiojack(tp->channelbuffers, &(tp->jack), aec->mx);
 
 	gdk_threads_add_idle(audioeffectchain_led, aec);
+
 	audiopipe *ap = &(tp->vpw.ap);
 	while ((audioCQ_remove(ap)==CQ_RUNNING) && (tp->status==TH_RUNNING))
 	{
@@ -636,10 +639,11 @@ sleep(1); // idle functions called as late as here ???
 
 	close_audiojack(&(tp->jack));
 
-	gdk_threads_add_idle(close_videoplayerwidgets_idle, plp);
-	//close_videoplayerwidgets(plp);
+	set_videoplayerwidgets(plp);
 
-	close_playlistparams(plp);
+	gdk_threads_add_idle(close_videoplayerwidgetsplp_idle, plp);
+
+	//close_playlistparams(plp);
 
 //printf("exiting %s\n", aec->name);
 	aec->tp.retval = 0;

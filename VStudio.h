@@ -31,7 +31,6 @@ typedef struct
 	GtkWidget *hjambox;
 	GtkWidget *vjambox;
 
-	int context_id;
 	GtkWidget *statusbox;
 	GtkWidget *statusbar;
 
