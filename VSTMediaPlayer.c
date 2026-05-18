@@ -370,7 +370,7 @@ gpointer playlist_thread(gpointer args)
 	pthread_setcanceltype(ctype, &ctype_old);
 
 	playlistparams *plp = (playlistparams*)args;
-	vpwidgets *vpw = plp->vpw;
+	//vpwidgets *vpw = plp->vpw;
 	int sr;
 
 	pl_setplaying(plp);
@@ -384,7 +384,8 @@ gpointer playlist_thread(gpointer args)
 	pl_signalstop(plp);
 
 	if (!sr)
-		button2_clicked(vpw->button2, (gpointer)plp);
+		press_vp_stop_button(plp);
+	//	button2_clicked(vpw->button2, (gpointer)plp);
 
 //printf("exiting playlist_thread\n");
 	plp->vpw->retval0 = 0;

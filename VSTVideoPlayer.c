@@ -299,8 +299,12 @@ int open_now_playing(videoplayer *v)
 
 		// Set up SWR context once you've got codec information
 		v->swr = swr_alloc();
-		av_opt_set_int(v->swr, "in_channel_count", v->pCodecCtxA->channels, 0);
-		av_opt_set_int(v->swr, "out_channel_count", 2,  0);
+		av_channel_layout_copy(&(v->in_ch_layout), &(v->pCodecCtxA->ch_layout));
+		av_channel_layout_copy(&(v->out_ch_layout), &(v->pCodecCtxA->ch_layout));
+		av_opt_set_chlayout(v->swr, "in_chlayout", &(v->in_ch_layout), 0);
+		av_opt_set_chlayout(v->swr, "out_chlayout", &(v->out_ch_layout), 0);
+		//av_opt_set_int(v->swr, "in_channel_count", v->pCodecCtxA->ch_layout.nb_channels, 0);
+		//av_opt_set_int(v->swr, "out_channel_count", 2,  0);
 		av_opt_set_int(v->swr, "in_sample_rate", v->pCodecCtxA->sample_rate, 0);
 		av_opt_set_int(v->swr, "out_sample_rate", v->spk_samplingrate, 0);
 		av_opt_set_sample_fmt(v->swr, "in_sample_fmt", v->pCodecCtxA->sample_fmt, 0);
@@ -554,12 +558,14 @@ void frame_reader_loop(videoplayer *v)
 	if (v->videoStream!=-1)
 	{
 		avcodec_flush_buffers(v->pCodecCtx);
-		avcodec_close(v->pCodecCtx);
+		//avcodec_close(v->pCodecCtx);
+		avcodec_free_context(&(v->pCodecCtx));
 	}
 	if (v->audioStream!=-1)
 	{
 		avcodec_flush_buffers(v->pCodecCtxA);
-		avcodec_close(v->pCodecCtxA);
+		//avcodec_close(v->pCodecCtxA);
+		avcodec_free_context(&(v->pCodecCtxA));
 	}
 	avformat_close_input(&(v->pFormatCtx));
 	avformat_network_deinit();

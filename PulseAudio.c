@@ -116,7 +116,7 @@ void stream_write_callback(pa_stream *s, size_t length, void *userdata)
 /* This is called whenever new data is available for reading*/
 void stream_read_callback(pa_stream *s, size_t length, void *userdata) {
 	paplayer *p = (paplayer *)userdata;
-	void *data;
+	const void *data;
 	int ret;
 
 	if (p->status == PA_IDLE) return;
@@ -145,7 +145,7 @@ void stream_read_callback(pa_stream *s, size_t length, void *userdata) {
 			}
 			else
 			{
-				paplayer_add(p, data, length);
+				paplayer_add(p, (char *)data, length);
 				pa_stream_drop(s);
 			}
 		}

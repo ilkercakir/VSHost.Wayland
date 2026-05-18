@@ -19,6 +19,7 @@
 #include <libavformat/avformat.h>
 #include <libswscale/swscale.h>
 #include <libswresample/swresample.h>
+#include <libavutil/channel_layout.h>
 
 #include "VideoQueue.h"
 #include "YUV420RGBgl.h"
@@ -71,6 +72,7 @@ typedef struct
 	AVCodec *pCodecA;
 	int thread_count;
 	SwrContext *swr;
+	AVChannelLayout in_ch_layout, out_ch_layout;
     AVDictionary *optionsDict;
     AVDictionary *optionsDictA;
 	YUVformats yuvfmt;

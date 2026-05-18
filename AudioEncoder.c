@@ -288,8 +288,9 @@ int start_encoder(audioencoder *aen, char *filename, enum AVCodecID id, enum AVS
 				{
 					//select_sample_rate(aen->codec);
 					
-					aen->codeccontext->channels = aen->channels;
-					aen->codeccontext->channel_layout = av_get_default_channel_layout(aen->channels);
+					aen->codeccontext->ch_layout.nb_channels = aen->channels;
+					//aen->codeccontext->channel_layout = av_get_default_channel_layout(aen->channels);
+					av_channel_layout_default(&(aen->codeccontext->ch_layout), aen->channels);
 					aen->codeccontext->sample_rate = aen->rate;
 					aen->codeccontext->sample_fmt = aen->avformat;
 					aen->codeccontext->bit_rate = aen->bit_rate;
@@ -357,8 +358,9 @@ int start_encoder(audioencoder *aen, char *filename, enum AVCodecID id, enum AVS
 								{
 //printf("frame_size %d\n", aen->codeccontext->frame_size);
 									aen->frame->nb_samples = aen->codeccontext->frame_size;
-									aen->frame->channels = aen->codeccontext->channels;
-									aen->frame->channel_layout = aen->codeccontext->channel_layout;
+									aen->frame->ch_layout.nb_channels = aen->codeccontext->ch_layout.nb_channels;
+									//aen->frame->ch_layout = aen->codeccontext->channel_layout;
+									av_channel_layout_copy(&(aen->frame->ch_layout), &(aen->codeccontext->ch_layout));
 									aen->frame->format = aen->codeccontext->sample_fmt;
 									aen->frame->sample_rate = aen->rate;
 									/* allocate the data buffers */
@@ -429,7 +431,7 @@ void stop_encoder(audioencoder *aen)
 
 	if (aen->codeccontext)
 	{
-		avcodec_close(aen->codeccontext);
+		//avcodec_close(aen->codeccontext);
 		avcodec_free_context(&(aen->codeccontext));
 	}
 
